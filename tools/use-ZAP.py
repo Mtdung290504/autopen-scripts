@@ -8,6 +8,22 @@ from pathlib import Path
 from zapv2 import ZAPv2
 from datetime import datetime, timedelta
 
+
+def parse_session(file_path: str) -> dict:
+    """Đọc session file (format: key=val; key=val) → dict cookies."""
+    cookies = {}
+    if not file_path or not os.path.exists(file_path):
+        return cookies
+    try:
+        content = Path(file_path).read_text(encoding="utf-8").strip()
+        for item in content.split(";"):
+            if "=" in item:
+                k, v = item.split("=", 1)
+                cookies[k.strip()] = v.strip()
+    except Exception as e:
+        print(f"[!] Lỗi đọc session file: {e}")
+    return cookies
+
 # ==========================================
 # 1. TRIỆT TIÊU PROXY LOOP TRONG SCRIPT
 # ==========================================
@@ -26,11 +42,11 @@ class FastZapScanner:
         proxy_host="127.0.0.1",
         proxy_port="8080",
         api_key="",
-        sid=None,
+        cookies: dict = None,
         fast_mode=False,
     ):
         self.proxy_url = f"http://{proxy_host}:{proxy_port}"
-        self.sid = sid
+        self.cookies = cookies or {}
         self.fast_mode = fast_mode
 
         # Cấu hình để thư viện ZAPv2 biết server ZAP đang nằm ở đâu (máy ảo Kali)
@@ -46,7 +62,7 @@ class FastZapScanner:
         # 40026: DOM XSS
         self.slow_rules = "40019,40020,40021,40022,40023,40024,40026,90037,90033,40027,90011"
 
-        if self.sid:
+        if self.cookies:
             self._setup_auth()
         if self.fast_mode:
             self._optimize_policy()
@@ -68,19 +84,20 @@ class FastZapScanner:
     def _setup_auth(self):
         try:
             try:
-                self.zap.replacer.remove_rule("auth-sid")
+                self.zap.replacer.remove_rule("auth-session")
             except:
                 pass
+            cookie_header = "; ".join(f"{k}={v}" for k, v in self.cookies.items())
             self.zap.replacer.add_rule(
-                description="auth-sid",
+                description="auth-session",
                 enabled="true",
                 matchtype="REQ_HEADER",
                 matchregex="false",
                 matchstring="Cookie",
-                replacement=f"PHPSESSID={self.sid}",
+                replacement=cookie_header,
                 initiators="",
             )
-            self._log(f"[+] Đã nạp xác thực SID: {self.sid}")
+            self._log(f"[+] Đã nạp xác thực session: {cookie_header}")
         except Exception as e:
             self._log(f"[!] Lỗi Replacer: {e}")
 
@@ -105,7 +122,14 @@ class FastZapScanner:
     def get_findings(self, url, base_url):
         results = []
         try:
-            raw_alerts = self.zap.core.alerts(baseurl=url)
+            # Strip query string trước khi dùng làm baseurl:
+            # ZAP inject payload vào query param → alert URL sẽ có query KHÁC
+            # với URL gốc. Nếu dùng full URL (có query string) làm baseurl,
+            # alerts với param đã bị thay đổi sẽ không match và bị bỏ sót.
+            # VD: scan "fi/?page=include.php" → alert ở "fi/?page=../../etc/passwd"
+            # → không match → Path Traversal bị miss hoàn toàn.
+            alerts_baseurl = url.split("?")[0]
+            raw_alerts = self.zap.core.alerts(baseurl=alerts_baseurl)
             for alert in raw_alerts:
                 msg_id = alert.get("messageId")
                 raw_req, raw_res = "", ""
@@ -189,7 +213,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="ZAP Authenticated Targeted Scanner")
     parser.add_argument("-i", "--input-file", required=True)
     parser.add_argument("-b", "--base-url", required=True)
-    parser.add_argument("--sid", required=True)
+    parser.add_argument("-s", "--session", required=True, help="Path đến session file (vd: target_info/session.txt)")
     parser.add_argument("--fast-scan", action="store_true")
     parser.add_argument("-a", "--api-key", default="ksggc5u2lduvgiha5t9ues878a")
     parser.add_argument("-o", "--output", default="zap_results.json")
@@ -205,6 +229,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     total_start_time = time.time()
+
+    cookies = parse_session(args.session)
+    if not cookies:
+        print(f"[!] Không đọc được session từ: {args.session}")
+        exit()
 
     base = args.base_url.rstrip("/") + "/"
     path = Path(args.input_file)
@@ -230,7 +259,7 @@ if __name__ == "__main__":
     scanner = FastZapScanner(
         proxy_host=args.proxy_host,
         proxy_port=args.proxy_port,
-        sid=args.sid,
+        cookies=cookies,
         api_key=args.api_key,
         fast_mode=args.fast_scan,
     )

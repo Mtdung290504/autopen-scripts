@@ -70,7 +70,7 @@ def request_worker(task):
 def cmd_bulk_send(args):
     """Quét hàng loạt dựa trên file Manifest JSON"""
     tasks_data = json.loads(Path(args.manifest).read_text())
-    cookies = parse_session(args.session_file)
+    cookies = parse_session(args.session)
     os.makedirs(TMP_DIR, exist_ok=True)
 
     # Tạo danh sách các request cần thực hiện (Flatten tasks)
@@ -125,7 +125,7 @@ if __name__ == "__main__":
     # Lệnh Bulk Send: Nhận 1 file JSON chứa toàn bộ target và payload
     p_send = sub.add_parser("bulk-send")
     p_send.add_argument("-m", "--manifest", required=True, help="File JSON nhiệm vụ")
-    p_send.add_argument("-s", "--session-file", required=True)
+    p_send.add_argument("-s", "--session", required=True, help="Path đến session file (vd: target_info/session.txt)")
 
     # Lệnh Search: Giữ nguyên logic tìm kiếm thông minh
     p_search = sub.add_parser("search")

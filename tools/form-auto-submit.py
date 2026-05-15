@@ -12,7 +12,7 @@ Features:
 - Avoids dangerous URLs/forms/actions
 - Supports:
     - auto login
-    - SID reuse
+    - session file reuse (key=val; key=val format)
     - raw cookies
 - Avoids:
     - logout
@@ -40,6 +40,23 @@ from bs4 import BeautifulSoup
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+
+def parse_session(file_path: str) -> dict:
+    """Dọc session file (format: key=val; key=val) → dict cookies."""
+    cookies = {}
+    if not file_path or not Path(file_path).exists():
+        return cookies
+    try:
+        content = Path(file_path).read_text(encoding="utf-8").strip()
+        for item in content.split(";"):
+            if "=" in item:
+                k, v = item.split("=", 1)
+                cookies[k.strip()] = v.strip()
+    except Exception as e:
+        print(f"[!] Session file parse failed: {e}")
+    return cookies
+
+
 BASE_URL = "http://192.168.153.200/DVWA"
 
 DEFAULT_INPUT_FILE = "katana.filtered.txt"
@@ -65,7 +82,7 @@ class FormAutoSubmit:
         auth_user: str = "admin",
         auth_pass: str = "password",
         no_auth: bool = False,
-        sid: str = None,
+        session_cookies: dict = None,
         cookie: str = None,
     ):
 
@@ -127,18 +144,16 @@ class FormAutoSubmit:
             "cancel",
         )
 
-        # SID
-        if sid:
+        # Session cookies from file
+        if session_cookies:
 
-            print(f"[*] Using provided PHPSESSID")
+            print(f"[*] Using session cookies: {list(session_cookies.keys())}")
 
             parsed = urlparse(self.base_url)
-
             domain = parsed.hostname
 
-            self.session.cookies.set("PHPSESSID", sid, domain=domain, path="/")
-
-            self.session.cookies.set("security", "low", domain=domain, path="/")
+            for k, v in session_cookies.items():
+                self.session.cookies.set(k, v, domain=domain, path="/")
 
             self.no_auth = True
 
@@ -726,8 +741,8 @@ def main():
 
     parser.add_argument(
         "-s",
-        "--sid",
-        help="Use existing PHPSESSID",
+        "--session",
+        help="Path đến session file (vd: target_info/session.txt)",
     )
 
     parser.add_argument(
@@ -737,13 +752,15 @@ def main():
 
     args = parser.parse_args()
 
+    session_cookies = parse_session(args.session) if args.session else {}
+
     processor = FormAutoSubmit(
         proxy_url=args.proxy,
         base_url=args.base_url,
         auth_user=args.auth_user,
         auth_pass=args.auth_pass,
         no_auth=args.no_auth,
-        sid=args.sid,
+        session_cookies=session_cookies,
         cookie=args.cookie,
     )
 
