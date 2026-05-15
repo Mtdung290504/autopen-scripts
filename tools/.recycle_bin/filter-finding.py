@@ -31,15 +31,7 @@ RULE THỨ TỰ ƯU TIÊN:
 
 import json
 import argparse
-import socket
-import time
-import urllib.error
-import urllib.request
 from pathlib import Path
-
-DEFAULT_FILTER_API_URL = (
-    "https://saint-endorsement-moisture-confidence.trycloudflare.com/filter"
-)
 
 # ──────────────────────────────────────────────────────────────
 # RULE 3 — Configuration findings
@@ -113,9 +105,6 @@ BORING_EVIDENCE = {
     "x-content-type-options",
     "strict-transport-security",
 }
-
-API_TIMEOUT_SECONDS = 180
-API_FIELDS_TO_REMOVE = {"raw_request", "raw_response"}
 
 
 def is_useless(finding: dict) -> tuple[bool, str]:
@@ -205,144 +194,6 @@ def is_useless(finding: dict) -> tuple[bool, str]:
     return False, ""
 
 
-def build_api_payload(findings: list[dict]) -> list[dict]:
-    sanitized: list[dict] = []
-    for finding in findings:
-        if isinstance(finding, dict):
-            sanitized.append(
-                {
-                    key: value
-                    for key, value in finding.items()
-                    if key not in API_FIELDS_TO_REMOVE
-                }
-            )
-        else:
-            sanitized.append(finding)
-    return sanitized
-
-
-def validate_api_response(payload: dict, item_count: int) -> dict:
-    if not isinstance(payload, dict):
-        raise ValueError("API response phai la JSON object")
-
-    if set(payload.keys()) != {"keep", "drop"}:
-        raise ValueError("API response phai chi co 2 key: keep va drop")
-
-    validated: dict[str, list[int]] = {}
-    all_indexes: set[int] = set()
-
-    for key in ("keep", "drop"):
-        value = payload.get(key)
-        if not isinstance(value, list):
-            raise ValueError(f"API response field '{key}' phai la list")
-
-        cleaned: list[int] = []
-        for item in value:
-            if not isinstance(item, int):
-                raise ValueError(f"API response field '{key}' phai chua integer")
-            if item < 0 or item >= item_count:
-                raise ValueError(f"Index {item} trong '{key}' bi out of range")
-            if item in all_indexes:
-                raise ValueError(f"Index {item} bi lap giua keep/drop")
-            cleaned.append(item)
-            all_indexes.add(item)
-
-        validated[key] = cleaned
-
-    expected_indexes = set(range(item_count))
-    if all_indexes != expected_indexes:
-        raise ValueError("API response khong cover day du tat ca index")
-
-    return validated
-
-
-def call_filter_api(
-    findings: list[dict], api_url: str, timeout_seconds: int, log
-) -> dict | None:
-    if not findings:
-        log("[+] Khong co finding nao de gui API")
-        return None
-
-    payload = build_api_payload(findings)
-    request_body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-    request = urllib.request.Request(
-        url=api_url,
-        data=request_body,
-        method="POST",
-        headers={"Content-Type": "application/json"},
-    )
-
-    started = time.perf_counter()
-    try:
-        with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
-            response_text = response.read().decode("utf-8", errors="replace")
-    except urllib.error.HTTPError as error:
-        response_text = error.read().decode("utf-8", errors="replace")
-        log(
-            f"[!] API HTTP error {error.code} {error.reason} -> bo qua API, dung ket qua local"
-        )
-        log(f"[!] API response: {response_text}")
-        return None
-    except (urllib.error.URLError, TimeoutError, socket.timeout) as error:
-        log(
-            f"[!] API/network timeout or error -> bo qua API, dung ket qua local: {error}"
-        )
-        return None
-    except Exception as error:  # noqa: BLE001
-        log(f"[!] Loi goi API -> bo qua API, dung ket qua local: {error}")
-        return None
-
-    elapsed = time.perf_counter() - started
-
-    try:
-        parsed_response = json.loads(response_text)
-        validated_response = validate_api_response(parsed_response, len(findings))
-    except (json.JSONDecodeError, ValueError) as error:
-        log(f"[!] API tra ve sai dinh dang -> bo qua API, dung ket qua local: {error}")
-        return None
-
-    log(
-        f"[+] API OK sau {elapsed:.2f}s | keep={len(validated_response['keep'])} | "
-        f"drop={len(validated_response['drop'])}"
-    )
-    return validated_response
-
-
-def apply_api_drop(filtered: dict, api_result: dict) -> None:
-    current_results = filtered.get("results", [])
-    drop_set = set(api_result["drop"])
-    api_dropped: list[dict] = []
-    final_results: list[dict] = []
-
-    for index, finding in enumerate(current_results):
-        if index in drop_set:
-            api_dropped.append({**finding, "_drop_reason": "api_drop"})
-        else:
-            final_results.append(finding)
-
-    filtered["results"] = final_results
-
-    dropped_bucket = filtered.setdefault("_dropped", [])
-    dropped_bucket.extend(api_dropped)
-
-    stats = filtered.get("_filter_stats", {})
-    original_count = stats.get(
-        "original_count", len(final_results) + len(dropped_bucket)
-    )
-    kept_count = len(final_results)
-    dropped_count = len(dropped_bucket)
-    reduction_pct = round(
-        (dropped_count / original_count * 100) if original_count else 0, 1
-    )
-
-    filtered["_filter_stats"] = {
-        "original_count": original_count,
-        "kept_count": kept_count,
-        "dropped_count": dropped_count,
-        "reduction_pct": reduction_pct,
-    }
-
-
 def filter_findings(data: dict) -> dict:
     results = data.get("results", [])
     base = data.get("base", "")
@@ -388,70 +239,42 @@ def filter_findings(data: dict) -> dict:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Filter ZAP findings - local rule first, API triage second"
+        description="Filter ZAP findings — drop thứ chắc chắn vô dụng, giữ lại cho local model"
     )
-    parser.add_argument("-i", "--input", required=True, help="File JSON tu ZAP")
+    parser.add_argument("-i", "--input", required=True, help="File JSON từ ZAP")
     parser.add_argument(
-        "-o", "--output", default="zap_filtered.json", help="File JSON dau ra"
-    )
-    parser.add_argument(
-        "-v", "--verbose", action="store_true", help="Log chi tiet (human debug)"
+        "-o", "--output", default="zap_filtered.json", help="File JSON đầu ra"
     )
     parser.add_argument(
-        "--drop-file", default="", help="Ghi findings bi drop ra file rieng (debug)"
+        "-v", "--verbose", action="store_true", help="Log chi tiết (human debug)"
+    )
+    parser.add_argument(
+        "--drop-file", default="", help="Ghi findings bị drop ra file riêng (debug)"
     )
     parser.add_argument(
         "--keep-dropped",
         action="store_true",
-        help="Giu _dropped trong output chinh (debug)",
+        help="Giữ _dropped trong output chính (debug)",
     )
     parser.add_argument("--pretty", action="store_true", help="Indent JSON output")
-    parser.add_argument(
-        "--api-url",
-        default=DEFAULT_FILTER_API_URL,
-        help=f"API URL bo sung. Default: {DEFAULT_FILTER_API_URL}",
-    )
-    parser.add_argument(
-        "--api-timeout",
-        type=int,
-        default=API_TIMEOUT_SECONDS,
-        help=f"Timeout goi API theo giay. Default: {API_TIMEOUT_SECONDS}",
-    )
     args = parser.parse_args()
 
     log = print if args.verbose else lambda *a, **k: None
 
     input_path = Path(args.input)
     if not input_path.exists():
-        print(f"[!] Khong tim thay file: {input_path}")
+        print(f"[!] Không tìm thấy file: {input_path}")
         return
 
     data = json.loads(input_path.read_text(encoding="utf-8"))
     filtered = filter_findings(data)
-    local_stats = filtered["_filter_stats"]
+    stats = filtered["_filter_stats"]
 
-    log(f"[+] Original  : {local_stats['original_count']} findings")
-    log(f"[+] Kept local: {local_stats['kept_count']} findings")
+    log(f"[+] Original : {stats['original_count']} findings")
+    log(f"[+] Kept     : {stats['kept_count']} findings  → local model / Agent")
     log(
-        f"[+] Drop local: {local_stats['dropped_count']} findings ({local_stats['reduction_pct']}% reduction)"
+        f"[+] Dropped  : {stats['dropped_count']} findings ({stats['reduction_pct']}% reduction)"
     )
-
-    api_result = call_filter_api(
-        filtered.get("results", []),
-        api_url=args.api_url,
-        timeout_seconds=args.api_timeout,
-        log=log,
-    )
-    if api_result is not None:
-        apply_api_drop(filtered, api_result)
-        stats = filtered["_filter_stats"]
-        log(f"[+] Kept final: {stats['kept_count']} findings")
-        log(
-            f"[+] Drop final: {stats['dropped_count']} findings ({stats['reduction_pct']}% reduction)"
-        )
-    else:
-        stats = filtered["_filter_stats"]
-        log("[+] API bi bo qua, ghi ket qua local hien tai")
 
     indent = 2 if args.pretty else None
     separators = None if args.pretty else (",", ":")
@@ -466,7 +289,7 @@ def main():
             ),
             encoding="utf-8",
         )
-        log(f"[+] Dropped -> {args.drop_file}")
+        log(f"[+] Dropped  → {args.drop_file}")
 
     if not args.keep_dropped:
         filtered.pop("_dropped", None)
@@ -476,7 +299,7 @@ def main():
         json.dumps(filtered, ensure_ascii=False, indent=indent, separators=separators),
         encoding="utf-8",
     )
-    log(f"[+] Filtered -> {output_path}")
+    log(f"[+] Filtered → {output_path}")
 
     if args.verbose:
         input_size = input_path.stat().st_size

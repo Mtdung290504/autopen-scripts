@@ -9,6 +9,9 @@ from zapv2 import ZAPv2
 from datetime import datetime, timedelta
 
 
+POLICY = ("Sequence", "Default Policy", "Pen Test", "API")[0]
+
+
 def parse_session(file_path: str) -> dict:
     """Đọc session file (format: key=val; key=val) → dict cookies. Chỉ đọc dòng đầu tiên."""
     cookies = {}
@@ -111,7 +114,7 @@ class FastZapScanner:
             self._log(f"[!] Lỗi Replacer: {e}")
 
     def _optimize_policy(self):
-        policy_name = "Sequence"
+        policy_name = POLICY
         self._log(f"[*] Đang tinh chỉnh Policy: {policy_name}...")
         try:
             # 1. Disable các rule chậm CHỈ dành riêng cho Policy "Pen Test"
@@ -194,7 +197,7 @@ class FastZapScanner:
                 url=url,
                 recurse=(url != "/" and True or False),
                 # recurse=(False),
-                scanpolicyname="Sequence",
+                scanpolicyname=POLICY,
             )
             if not str(scan_id).isdigit():
                 self._log(f"    [!] ZAP Reject: {scan_id}")
@@ -237,6 +240,55 @@ if __name__ == "__main__":
     parser.add_argument("--proxy-port", default="8080", help="Cổng của ZAP Proxy")
 
     args = parser.parse_args()
+
+    # ==========================================
+    # LOGIC CACHE: Kiểm tra target address
+    # ==========================================
+    # Luôn đọc từ target_info/target-address.txt (không phải args.input_file)
+    target_address_file = Path("target_info") / "target-address.txt"
+    input_content = (
+        target_address_file.read_text(encoding="utf-8").strip()
+        if target_address_file.exists()
+        else ""
+    )
+    cache_dir = Path(".cache")
+    cache_dir.mkdir(exist_ok=True)
+    cache_file = cache_dir / "target-address.txt"
+
+    cache_content = (
+        cache_file.read_text(encoding="utf-8").strip() if cache_file.exists() else ""
+    )
+    output_file = Path(args.output)
+
+    # Kiểm tra điều kiện cache
+    cache_is_valid = cache_content == input_content and cache_content != ""
+    output_exists = output_file.exists()
+
+    if cache_is_valid and output_exists:
+        print(f"\n{'='*50}")
+        print(f"[+] CACHE HỢP LỆ & OUTPUT ĐÃ TỒN TẠI")
+        print(f"[*] Cache content: {cache_content}")
+        print(f"[*] Output file: {args.output}")
+        print(f"[+] BỎ QUA ZAP SCAN - SỬ DỤNG KẾT QUẢ CŨ")
+        print(f"{'='*50}\n")
+        exit(0)
+
+    if cache_is_valid and not output_exists:
+        print(f"\n{'='*50}")
+        print(f"[!] CACHE HỢP LỆ NHƯNG OUTPUT KHÔNG TỒN TẠI")
+        print(f"[*] Cache content: {cache_content}")
+        print(f"[*] Tiếp tục chạy ZAP vì file output chưa được tạo")
+        print(f"{'='*50}\n")
+    elif not cache_is_valid:
+        print(f"\n{'='*50}")
+        print(f"[*] CACHE KHÔNG HỢP LỆ HOẶC LẦN ĐẦU TIÊN")
+        if cache_content:
+            print(f"[*] Cache cũ: {cache_content}")
+        print(f"[*] Target mới: {input_content}")
+        print(f"[*] Cập nhật cache và chạy ZAP...")
+        print(f"{'='*50}\n")
+        # Cập nhật cache
+        cache_file.write_text(input_content, encoding="utf-8")
 
     total_start_time = time.time()
 
