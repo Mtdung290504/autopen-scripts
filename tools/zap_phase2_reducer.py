@@ -3,6 +3,23 @@ from __future__ import annotations
 """
 Phase 2 reducer for agent-facing triage.
 
+======================================================================
+CƠ CHẾ HOẠT ĐỘNG (MECHANISM):
+Script này hoạt động như một bộ lọc và tối ưu hóa dữ liệu (reducer) 
+từ kết quả quét của ZAP, chuẩn bị dữ liệu tinh gọn để cấp cho AI Agent:
+1. Gom nhóm (Clustering): Nhóm các lỗ hổng dựa trên URL path (bỏ query string), 
+   HTTP method, input vector và parameter. Điều này giúp gộp các payload 
+   khác nhau tấn công vào cùng một điểm mục tiêu thành một cluster duy nhất.
+2. Rút gọn dữ liệu (Reduction): Thay vì ném toàn bộ HTTP Response khổng lồ 
+   cho AI, script chỉ trích xuất những phần quan trọng: Status line, 
+   các headers cốt lõi, ZAP Evidence (bằng chứng lỗi ZAP tìm thấy), ngữ cảnh 
+   (context) xung quanh bằng chứng, và snippet chứa payload (Reflection).
+3. Loại bỏ trùng lặp (Deduplication): Loại bỏ các finding và payload trùng lặp 
+   trong cùng một cluster.
+4. Sắp xếp (Sorting): Ưu tiên đẩy các cluster có mức độ nghiêm trọng cao 
+   (Critical/High) lên đầu danh sách để Agent xử lý trước.
+======================================================================
+
 Schema:
 
 {
@@ -17,63 +34,71 @@ Schema:
         "param": "txtName"
       },
       "findings": [
-        "Cross Site Scripting (Reflected) [High/Medium]",
-        "Parameter Tampering [Medium/Low]"
+        "Cross Site Scripting (Reflected) [High/Medium]"
       ],
       "payloads": [
-        "</div><script>alert(1)</script><div>",
-        ""
+        "</div><script>alert(1)</script><div>"
       ],
-      "response": "HTTP/1.1 200 OK\nContent-Type: text/html;charset=utf-8\n\n<form ...>...</form>\n\n<div id=\"guestbook_comments\">Name: </div><script>alert(1)</script><div>...</div>",
-      "confirmReflection": true,
+      "response": "HTTP/1.1 200 OK\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] ...\n[Context] ...",
       "repeat": 2
     }
   ]
 }
 
 Field notes:
-- `clusterKey` is kept intentionally. It is the stable dedupe key and the join key for phase 3.
-- `target` contains the input surface the agent should reason about.
-- `findings` and `payloads` are aligned by index. If a finding has no payload, the payload at that same index is "".
-- `response` is a single reduced HTTP-like string: status line + relevant headers + only useful body snippets.
-- `confirmReflection` is intentionally broad: any controllable query/body input is marked true for phase 3.
-- `repeat` appears only when a cluster contains more than one source result.
+- `clusterKey` — stable dedupe key, join key for phase 3. Uses path only (no query string) to avoid
+  splitting same endpoint into multiple clusters due to different payload values in URL.
+- `target` — the input surface the agent should reason about.
+- `findings` and `payloads` — aligned by index. Empty string if a finding has no payload.
+- `response` — reduced HTTP-like string:
+    status line
+    + small set of relevant headers
+    + [ZAP Evidence] lines (from alert.evidence — ZAP already confirmed these)
+    + [Context] window around evidence in body (only when evidence is short and found in body)
+    + [Reflection] snippet (only for XSS/injection findings where payload appears in body)
+  Forms are NOT included — form structure is stored separately in form_map.json.
+  LEAK_PATTERNS are NOT used — ZAP evidence field already contains what matters.
+- `repeat` — present only when cluster contains more than one source result.
 """
 
 import argparse
-import html
 import json
 import re
 from collections import defaultdict
-from html.parser import HTMLParser
 from pathlib import Path
-from urllib.parse import parse_qsl, unquote_plus, urlparse
+from urllib.parse import unquote_plus, urlparse
 
+SEVERITY_RANK = {
+    "critical": 0,
+    "high": 1,
+    "medium": 2,
+    "low": 3,
+    "informational": 4,
+    "info": 4,
+}
 
-FORM_BLOCK_PATTERN = re.compile(r"<form\b[^>]*>.*?</form>", re.IGNORECASE | re.DOTALL)
-HTML_HINT_PATTERN = re.compile(r"<!doctype|<html|<body|<form|<input|<textarea|<select|<script", re.IGNORECASE)
-LEAK_PATTERNS = [
-    re.compile(r"root:.*:0:0", re.IGNORECASE),
-    re.compile(r"/etc/passwd", re.IGNORECASE),
-    re.compile(r"php warning|stack trace|uncaught .*exception", re.IGNORECASE),
-    re.compile(r"sql syntax|sqlstate|mysqli_sql_exception|postgresql.*error|oracle.*error|odbc.*error", re.IGNORECASE),
-    re.compile(r"uid=\d+", re.IGNORECASE),
-]
-VOID_TAGS = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"}
-SEVERITY_RANK = {"critical": 0, "high": 1, "medium": 2, "low": 3, "informational": 4, "info": 4}
-BODY_INPUT_VECTORS = {"form", "post", "postdata", "body", "json", "xml", "multipart"}
-HEADER_NAMES_TO_KEEP = {
+# Headers có giá trị thực sự cho Agent
+KEEP_HEADERS = {
     "content-type",
     "location",
     "set-cookie",
-    "x-frame-options",
     "content-security-policy",
-    "strict-transport-security",
-    "x-content-type-options",
 }
-MAX_BODY_SEGMENTS = 8
-MAX_BODY_SEGMENT_LENGTH = 2200
-MAX_EVIDENCE_WINDOWS = 5
+
+# Finding types cần check reflection trong body
+REFLECTION_FINDING_KEYWORDS = {
+    "xss",
+    "inject",
+    "ssti",
+    "template",
+    "traversal",
+    "inclusion",
+}
+
+
+# ──────────────────────────────────────────────────────────────
+# TEXT UTILITIES
+# ──────────────────────────────────────────────────────────────
 
 
 def normalize_text(value: object) -> str:
@@ -88,56 +113,9 @@ def dedupe_strings(items: list[str]) -> list[str]:
     return list(dict.fromkeys(item for item in items if item))
 
 
-def compress_segments(segments: list[str]) -> list[str]:
-    reduced: list[str] = []
-    normalized_seen: list[str] = []
-
-    for segment in segments:
-        cleaned = segment.strip()
-        if not cleaned:
-            continue
-        normalized = normalize_space(cleaned)
-
-        if any(normalized in existing for existing in normalized_seen):
-            continue
-
-        next_reduced: list[str] = []
-        next_seen: list[str] = []
-        for existing_raw, existing_norm in zip(reduced, normalized_seen):
-            if existing_norm in normalized:
-                continue
-            next_reduced.append(existing_raw)
-            next_seen.append(existing_norm)
-
-        next_reduced.append(cleaned)
-        next_seen.append(normalized)
-        reduced = next_reduced
-        normalized_seen = next_seen
-
-    return reduced
-
-
-def looks_like_html(text: str) -> bool:
-    return bool(HTML_HINT_PATTERN.search(text))
-
-
-def split_raw_request(raw_request: str) -> tuple[str, dict[str, str], str]:
-    if "\r\n\r\n" in raw_request:
-        head, body = raw_request.split("\r\n\r\n", 1)
-    elif "\n\n" in raw_request:
-        head, body = raw_request.split("\n\n", 1)
-    else:
-        head, body = raw_request, ""
-
-    lines = [line for line in head.splitlines() if line.strip()]
-    request_line = lines[0].strip() if lines else ""
-    headers: dict[str, str] = {}
-    for line in lines[1:]:
-        if ":" not in line:
-            continue
-        name, value = line.split(":", 1)
-        headers[name.strip().lower()] = value.strip()
-    return request_line, headers, body
+# ──────────────────────────────────────────────────────────────
+# HTTP PARSING
+# ──────────────────────────────────────────────────────────────
 
 
 def split_raw_response(raw_response: str) -> tuple[str, dict[str, str], str]:
@@ -164,42 +142,114 @@ def split_raw_response(raw_response: str) -> tuple[str, dict[str, str], str]:
     return status_line, headers, body
 
 
-def extract_request_target(request_line: str) -> str:
-    parts = request_line.split()
-    return parts[1].strip() if len(parts) >= 2 else ""
+# ──────────────────────────────────────────────────────────────
+# CLUSTER KEY
+# clusterKey dùng path không có query string để tránh split
+# cùng 1 endpoint thành nhiều cluster do payload khác nhau trong URL
+# ──────────────────────────────────────────────────────────────
 
 
-def parse_request_params(raw_request: str) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
-    request_line, _, body = split_raw_request(raw_request)
-    request_target = extract_request_target(request_line)
-    query_pairs = [(key.strip(), value) for key, value in parse_qsl(urlparse(request_target).query, keep_blank_values=True) if key.strip()]
-    body_pairs = [(key.strip(), value) for key, value in parse_qsl(body, keep_blank_values=True) if key.strip()]
-    return query_pairs, body_pairs
-
-
-def build_cluster_key(item: dict[str, object]) -> str:
+def build_cluster_key(item: dict) -> str:
+    endpoint = normalize_text(item.get("endpoint"))
+    # Strip query string khỏi endpoint để cluster đúng
+    path_only = urlparse(endpoint).path.strip("/")
     return "|".join(
         [
             normalize_text(item.get("method")).upper(),
-            normalize_text(item.get("endpoint")),
+            path_only,
             normalize_text(item.get("inputVector")),
             normalize_text(item.get("param")),
         ]
     )
 
 
-def format_finding(item: dict[str, object]) -> str:
+# ──────────────────────────────────────────────────────────────
+# RESPONSE REDUCER
+# Không dùng LEAK_PATTERNS — ZAP evidence đã có
+# Không extract form — có form_map.json riêng
+# Không parse HTML nặng — string search đơn giản
+# ──────────────────────────────────────────────────────────────
+
+
+def build_reduced_response(items: list[dict]) -> str:
+    raw_response = normalize_text(items[0].get("raw_response"))
+    status_line, headers, body = split_raw_response(raw_response)
+    lines: list[str] = []
+
+    # 1. Status line — luôn cần, Agent cần biết 200/403/500/redirect
+    if status_line:
+        lines.append(status_line)
+
+    # 2. Headers có giá trị — chỉ giữ những gì Agent cần reason
+    for name in KEEP_HEADERS:
+        if name in headers:
+            lines.append(f"{name.title()}: {headers[name]}")
+
+    # 3. ZAP Evidence — quan trọng nhất
+    # ZAP đã xác định rồi, không cần tìm lại bằng regex
+    zap_evidences = dedupe_strings(
+        [
+            normalize_text(item.get("evidence"))
+            for item in items
+            if normalize_text(item.get("evidence"))
+        ]
+    )
+
+    if zap_evidences:
+        lines.append("")
+        for ev in zap_evidences:
+            lines.append(f"[ZAP Evidence] {ev[:300]}")
+
+    # 4. Context window xung quanh evidence trong body
+    # Chỉ khi evidence ngắn (< 120 char) và cần thêm context
+    # Lấy tối đa 1 window để không làm nặng output
+    for ev in zap_evidences:
+        if len(ev) < 120 and ev in body:
+            idx = body.index(ev)
+            window = normalize_space(body[max(0, idx - 80) : idx + len(ev) + 150])
+            if window and window != ev:
+                lines.append(f"[Context] {window[:400]}")
+            break  # 1 window là đủ
+
+    # 5. Reflection snippet — chỉ cho XSS / injection / SSTI
+    # Tìm payload trong body, lấy snippet nhỏ xung quanh
+    for item in items:
+        payload = normalize_text(item.get("payload"))
+        finding = normalize_text(item.get("finding_type")).lower()
+        if not payload:
+            continue
+        if not any(kw in finding for kw in REFLECTION_FINDING_KEYWORDS):
+            continue
+        decoded_payload = unquote_plus(payload)
+        for candidate in [payload, decoded_payload]:
+            if candidate in body:
+                idx = body.index(candidate)
+                snippet = normalize_space(
+                    body[max(0, idx - 60) : idx + len(candidate) + 80]
+                )
+                lines.append(f"[Reflection] {snippet[:300]}")
+                break
+        break  # 1 reflection là đủ
+
+    return "\n".join(lines).strip()
+
+
+# ──────────────────────────────────────────────────────────────
+# FINDING + PAYLOAD LISTS
+# ──────────────────────────────────────────────────────────────
+
+
+def format_finding(item: dict) -> str:
     finding_type = normalize_text(item.get("finding_type"))
     severity = normalize_text(item.get("severity"))
     confidence = normalize_text(item.get("confidence"))
     return f"{finding_type} [{severity}/{confidence}]"
 
 
-def build_finding_payload_lists(items: list[dict[str, object]]) -> tuple[list[str], list[str]]:
+def build_finding_payload_lists(items: list[dict]) -> tuple[list[str], list[str]]:
     seen: set[tuple[str, str]] = set()
     findings: list[str] = []
     payloads: list[str] = []
-
     for item in items:
         finding = format_finding(item)
         payload = normalize_text(item.get("payload"))
@@ -209,244 +259,15 @@ def build_finding_payload_lists(items: list[dict[str, object]]) -> tuple[list[st
         seen.add(pair)
         findings.append(finding)
         payloads.append(payload)
-
     return findings, payloads
 
 
-def extract_forms(html_text: str) -> list[str]:
-    return compress_segments([match.group(0).strip() for match in FORM_BLOCK_PATTERN.finditer(html_text) if match.group(0).strip()])
+# ──────────────────────────────────────────────────────────────
+# CLUSTER → ITEM
+# ──────────────────────────────────────────────────────────────
 
 
-class ElementParser(HTMLParser):
-    def __init__(self) -> None:
-        super().__init__(convert_charrefs=True)
-        self.elements: list[dict[str, object]] = []
-        self.stack: list[dict[str, object]] = []
-
-    def handle_starttag(self, tag: str, attrs_list: list[tuple[str, str | None]]) -> None:
-        attrs = {key: value or "" for key, value in attrs_list}
-        self.stack.append({"tag": tag, "attrs": attrs, "start_html": self.get_starttag_text() or f"<{tag}>", "text_parts": []})
-
-    def handle_startendtag(self, tag: str, attrs_list: list[tuple[str, str | None]]) -> None:
-        attrs = {key: value or "" for key, value in attrs_list}
-        self.elements.append({"tag": tag, "attrs": attrs, "html": self.get_starttag_text() or f"<{tag} />", "text": ""})
-
-    def handle_data(self, data: str) -> None:
-        if not self.stack:
-            return
-        text = normalize_space(data)
-        if text:
-            self.stack[-1]["text_parts"].append(text)
-
-    def handle_endtag(self, tag: str) -> None:
-        if not self.stack:
-            return
-        node = self.stack.pop()
-        text_value = normalize_space(" ".join(node["text_parts"]))[:1200]
-        start_html = str(node["start_html"])
-        if node["tag"] in VOID_TAGS:
-            element_html = start_html
-        elif text_value:
-            element_html = f"{start_html}{text_value}</{node['tag']}>"
-        else:
-            element_html = f"{start_html}</{node['tag']}>"
-        self.elements.append({"tag": node["tag"], "attrs": node["attrs"], "html": element_html, "text": text_value})
-
-
-def parse_elements(html_text: str) -> list[dict[str, object]]:
-    parser = ElementParser()
-    parser.feed(html_text)
-    return parser.elements
-
-
-def tokenize_html_snippet(value: str) -> list[str]:
-    text_only = normalize_space(re.sub(r"<[^>]+>", " ", value))
-    tokens = [token for token in re.split(r"[^A-Za-z0-9_:/\\.%?-]+", text_only) if token]
-    return [token for token in tokens if token]
-
-
-def is_strong_token(token: str) -> bool:
-    cleaned = token.strip()
-    if not cleaned:
-        return False
-    if len(cleaned) >= 8:
-        return True
-    if any(char in cleaned for char in "<>\"'=/\\:%?&;(){}[]"):
-        return True
-    return False
-
-
-def collect_reflection_tokens(items: list[dict[str, object]]) -> list[str]:
-    tokens: list[str] = []
-    for item in items:
-        payload = normalize_text(item.get("payload"))
-        evidence = normalize_text(item.get("evidence"))
-        raw_request = normalize_text(item.get("raw_request"))
-        param = normalize_text(item.get("param"))
-
-        if payload:
-            tokens.append(unquote_plus(payload))
-        if evidence:
-            if "<" in evidence and ">" in evidence:
-                tokens.extend(tokenize_html_snippet(evidence))
-            else:
-                tokens.append(unquote_plus(evidence))
-
-        query_pairs, body_pairs = parse_request_params(raw_request)
-        if param:
-            for key, value in query_pairs + body_pairs:
-                if key == param and value:
-                    tokens.append(unquote_plus(value))
-
-    return [token for token in dedupe_strings(tokens) if is_strong_token(token)]
-
-
-def build_token_variants(token: str) -> list[str]:
-    return dedupe_strings(
-        [
-            token,
-            html.escape(token, quote=False),
-            html.escape(token, quote=True),
-            token.replace("'", "&#39;"),
-            token.replace("'", "&#x27;"),
-        ]
-    )
-
-
-def extract_reflected_segments(body: str, tokens: list[str]) -> list[str]:
-    if not body or not tokens or not looks_like_html(body):
-        return []
-
-    segments: list[str] = []
-    for element in parse_elements(body):
-        element_html = normalize_text(element.get("html"))
-        if not element_html:
-            continue
-        text_value = normalize_text(element.get("text"))
-        attrs = element.get("attrs", {})
-        matched = False
-
-        for token in tokens:
-            variants = build_token_variants(token)
-            if any(variant in text_value for variant in variants):
-                matched = True
-            if isinstance(attrs, dict):
-                for attr_name, attr_value in attrs.items():
-                    if any(variant in str(attr_name) or variant in str(attr_value) for variant in variants):
-                        matched = True
-                        break
-            if matched:
-                break
-
-        if matched:
-            segments.append(element_html[:MAX_BODY_SEGMENT_LENGTH])
-        if len(segments) >= MAX_BODY_SEGMENTS:
-            break
-
-    return compress_segments(segments)
-
-
-def extract_evidence_windows(body: str, items: list[dict[str, object]]) -> list[str]:
-    windows: list[str] = []
-    search_terms: list[str] = []
-
-    for item in items:
-        evidence = normalize_text(item.get("evidence"))
-        payload = normalize_text(item.get("payload"))
-        if evidence:
-            if "<" in evidence and ">" in evidence:
-                search_terms.extend(tokenize_html_snippet(evidence))
-            else:
-                search_terms.append(unquote_plus(evidence))
-        if payload:
-            search_terms.append(unquote_plus(payload))
-
-    for term in dedupe_strings(search_terms):
-        if len(term) < 4:
-            continue
-        start = body.find(term)
-        if start == -1:
-            continue
-        left = max(0, start - 120)
-        right = min(len(body), start + len(term) + 120)
-        windows.append(normalize_space(body[left:right]))
-        if len(windows) >= MAX_EVIDENCE_WINDOWS:
-            return compress_segments(windows)
-
-    for pattern in LEAK_PATTERNS:
-        match = pattern.search(body)
-        if not match:
-            continue
-        left = max(0, match.start() - 120)
-        right = min(len(body), match.end() + 120)
-        windows.append(normalize_space(body[left:right]))
-        if len(windows) >= MAX_EVIDENCE_WINDOWS:
-            break
-
-    return compress_segments(windows)[:MAX_EVIDENCE_WINDOWS]
-
-
-def select_response_headers(headers: dict[str, str], items: list[dict[str, object]]) -> list[str]:
-    lines: list[str] = []
-    mentioned_params = {normalize_text(item.get("param")).lower() for item in items if normalize_text(item.get("param"))}
-    finding_text = " ".join(normalize_text(item.get("finding_type")).lower() for item in items)
-
-    for name in HEADER_NAMES_TO_KEEP:
-        if name in headers:
-            lines.append(f"{name.title()}: {headers[name]}")
-
-    if ("cookie" in finding_text or "session" in finding_text) and "set-cookie" in headers:
-        candidate = f"Set-Cookie: {headers['set-cookie']}"
-        if candidate not in lines:
-            lines.append(candidate)
-
-    for param in mentioned_params:
-        if param in headers:
-            candidate = f"{param.title()}: {headers[param]}"
-            if candidate not in lines:
-                lines.append(candidate)
-
-    return dedupe_strings(lines)
-
-
-def build_reduced_response(items: list[dict[str, object]]) -> str:
-    raw_response = normalize_text(items[0].get("raw_response"))
-    status_line, headers, body = split_raw_response(raw_response)
-    lines: list[str] = []
-
-    if status_line:
-        lines.append(status_line)
-    for header_line in select_response_headers(headers, items):
-        lines.append(header_line)
-
-    tokens = collect_reflection_tokens(items)
-    forms = extract_forms(body) if looks_like_html(body) else []
-    reflected_segments = extract_reflected_segments(body, tokens)
-    evidence_windows = extract_evidence_windows(body, items)
-    body_segments = compress_segments(reflected_segments + forms + evidence_windows)[:MAX_BODY_SEGMENTS]
-
-    if body_segments:
-        lines.append("")
-        lines.extend(segment[:MAX_BODY_SEGMENT_LENGTH] for segment in body_segments)
-
-    return "\n".join(lines).strip()
-
-
-def should_confirm_reflection(items: list[dict[str, object]]) -> bool:
-    for item in items:
-        input_vector = normalize_text(item.get("inputVector")).lower().replace(" ", "")
-        raw_request = normalize_text(item.get("raw_request"))
-        query_pairs, body_pairs = parse_request_params(raw_request)
-
-        if query_pairs or body_pairs:
-            return True
-        if input_vector in BODY_INPUT_VECTORS or input_vector == "querystring":
-            return True
-
-    return False
-
-
-def build_item(cluster_key: str, items: list[dict[str, object]]) -> dict[str, object]:
+def build_item(cluster_key: str, items: list[dict]) -> dict:
     first = items[0]
     findings, payloads = build_finding_payload_lists(items)
 
@@ -457,7 +278,7 @@ def build_item(cluster_key: str, items: list[dict[str, object]]) -> dict[str, ob
         "param": normalize_text(first.get("param")),
     }
 
-    reduced = {
+    reduced: dict = {
         "clusterKey": cluster_key,
         "target": target,
         "findings": findings,
@@ -465,17 +286,19 @@ def build_item(cluster_key: str, items: list[dict[str, object]]) -> dict[str, ob
         "response": build_reduced_response(items),
     }
 
-    if should_confirm_reflection(items):
-        reduced["confirmReflection"] = True
-
     if len(items) > 1:
         reduced["repeat"] = len(items)
 
     return reduced
 
 
-def sort_items(items: list[dict[str, object]]) -> list[dict[str, object]]:
-    def item_rank(entry: dict[str, object]) -> tuple[object, ...]:
+# ──────────────────────────────────────────────────────────────
+# SORT — HIGH severity trước
+# ──────────────────────────────────────────────────────────────
+
+
+def sort_items(items: list[dict]) -> list[dict]:
+    def rank(entry: dict) -> tuple:
         highest = 99
         for finding in entry.get("findings", []):
             match = re.search(r"\[([^\]/]+)/", str(finding))
@@ -483,43 +306,51 @@ def sort_items(items: list[dict[str, object]]) -> list[dict[str, object]]:
             highest = min(highest, SEVERITY_RANK.get(severity, 99))
         target = entry.get("target", {})
         return (
-            entry.get("confirmReflection") is False,
             highest,
             str(target.get("endpoint", "")),
             str(target.get("param", "")),
         )
 
-    return sorted(items, key=item_rank)
+    return sorted(items, key=rank)
 
 
-def load_results(data: dict[str, object]) -> list[dict[str, object]]:
-    results = data.get("results")
-    if not isinstance(results, list):
-        raise ValueError("Input JSON khong co list `results` hop le.")
-    return [item for item in results if isinstance(item, dict)]
+# ──────────────────────────────────────────────────────────────
+# MAIN REDUCE
+# ──────────────────────────────────────────────────────────────
 
 
-def reduce_phase2(data: dict[str, object]) -> dict[str, object]:
+def reduce_phase2(data: dict) -> dict:
     base = normalize_text(data.get("base"))
-    results = load_results(data)
+    results = data.get("results", [])
+    if not isinstance(results, list):
+        raise ValueError("Input JSON không có list `results` hợp lệ.")
+    results = [item for item in results if isinstance(item, dict)]
 
-    clusters = defaultdict(list)
+    clusters: dict[str, list[dict]] = defaultdict(list)
     for item in results:
         clusters[build_cluster_key(item)].append(item)
 
-    reduced_items = [build_item(cluster_key, cluster_items) for cluster_key, cluster_items in clusters.items()]
+    reduced_items = [build_item(ck, citems) for ck, citems in clusters.items()]
     return {"base": base, "items": sort_items(reduced_items)}
 
 
-def build_arg_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Phase 2 reducer for agent-facing ZAP triage.")
-    parser.add_argument("--input", "-i", required=True, help="Path to input JSON file")
-    parser.add_argument("--output", "-o", default="output/phase2_reduced.json", help="Path to output JSON file")
-    return parser
+# ──────────────────────────────────────────────────────────────
+# CLI
+# ──────────────────────────────────────────────────────────────
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = build_arg_parser().parse_args(argv)
+    parser = argparse.ArgumentParser(
+        description="Phase 2 reducer — agent-facing ZAP triage"
+    )
+    parser.add_argument(
+        "--input", "-i", required=True, help="Input JSON file (ZAP filtered results)"
+    )
+    parser.add_argument(
+        "--output", "-o", default="output/phase2_reduced.json", help="Output JSON file"
+    )
+    args = parser.parse_args(argv)
+
     input_path = Path(args.input).expanduser().resolve()
     output_path = Path(args.output).expanduser().resolve()
 
@@ -527,12 +358,13 @@ def main(argv: list[str] | None = None) -> int:
     reduced = reduce_phase2(data)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(json.dumps(reduced, ensure_ascii=False, indent=2), encoding="utf-8")
+    output_path.write_text(
+        json.dumps(reduced, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
 
-    print(f"Input results: {len(load_results(data))}")
+    print(f"Input  : {len(data.get('results', []))} results")
     print(f"Clusters: {len(reduced['items'])}")
-    print(f"Confirm reflection: {sum(1 for item in reduced['items'] if item.get('confirmReflection'))}")
-    print(f"Output: {output_path}")
+    print(f"Output : {output_path}")
     return 0
 
 

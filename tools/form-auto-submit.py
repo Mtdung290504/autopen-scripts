@@ -394,6 +394,7 @@ class FormAutoSubmit:
                         "fields": fields,
                         "page_url": page_url,
                         "is_login_form": is_login_form,
+                        "raw_tag": form,
                     }
                 )
 
@@ -403,11 +404,30 @@ class FormAutoSubmit:
 
         return forms
 
+    def get_clean_form_html(self, form_tag) -> str:
+        soup = BeautifulSoup("", "html.parser")
+        new_form = soup.new_tag("form")
+        allowed_attrs = ["action", "method", "name", "type", "value"]
+
+        for k, v in form_tag.attrs.items():
+            if k in allowed_attrs:
+                new_form[k] = v
+
+        for inp in form_tag.find_all(["input", "select", "textarea", "button"]):
+            new_inp = soup.new_tag(inp.name)
+            for k, v in inp.attrs.items():
+                if k in allowed_attrs:
+                    new_inp[k] = v
+            new_form.append("\n  ")
+            new_form.append(new_inp)
+        new_form.append("\n")
+        return str(new_form)
+
     # =========================================================
     # submit form
     # =========================================================
 
-    def submit_form(self, form: Dict) -> Optional[str]:
+    def submit_form(self, form: Dict) -> tuple:
 
         method = form["method"]
 
@@ -421,7 +441,7 @@ class FormAutoSubmit:
 
             print("[!] Skipping login/setup form")
 
-            return None
+            return None, None
 
         print(f"    [+] Submitting " f"{method} -> {action}")
 
@@ -436,7 +456,8 @@ class FormAutoSubmit:
 
                 full_url = f"{action}?{query}" if query else action
 
-                self.session.get(full_url, timeout=10)
+                response = self.session.get(full_url, timeout=10)
+                url_after = response.url
 
                 parsed = urlparse(full_url)
 
@@ -447,12 +468,13 @@ class FormAutoSubmit:
 
                 print(f"    [✓] Captured GET: " f"{result}")
 
-                return result
+                return result, url_after
 
             # POST
             else:
 
-                self.session.post(action, data=fields, timeout=10)
+                response = self.session.post(action, data=fields, timeout=10)
+                url_after = response.url
 
                 parsed = urlparse(action)
 
@@ -465,13 +487,13 @@ class FormAutoSubmit:
 
                 print(f"    [✓] Captured POST: " f"{result}")
 
-                return result
+                return result, url_after
 
         except Exception as e:
 
             print(f"    [!] Submit failed: {e}")
 
-        return None
+        return None, None
 
     # =========================================================
     # login
@@ -520,9 +542,10 @@ class FormAutoSubmit:
     # process url
     # =========================================================
 
-    def process_url(self, url: str) -> List[str]:
+    def process_url(self, url: str) -> tuple:
 
         captured = []
+        agent_captured = []
 
         # full URL
         if not url.startswith("http"):
@@ -544,14 +567,14 @@ class FormAutoSubmit:
 
             print(f"[!] Skipping dangerous URL: " f"{full_url}")
 
-            return captured
+            return captured, agent_captured
 
         print(f"\n[*] Processing: {full_url}")
 
         html = self.fetch_page(full_url)
 
         if not html:
-            return captured
+            return captured, agent_captured
 
         forms = self.find_forms(html, full_url)
 
@@ -561,20 +584,23 @@ class FormAutoSubmit:
 
             print(f"[*] Form {idx}/{len(forms)}")
 
-            result = self.submit_form(form)
+            result, url_after = self.submit_form(form)
 
             if result:
                 captured.append(result)
+                clean_html = self.get_clean_form_html(form["raw_tag"])
+                # Lược bỏ chữ "URL after submit", chỉ dùng _ theo yêu cầu user
+                agent_captured.append(f"{clean_html}\n_\n{url_after}")
 
             time.sleep(0.3)
 
-        return captured
+        return captured, agent_captured
 
     # =========================================================
     # process all
     # =========================================================
 
-    def process_all(self, input_file: str, output_file: str):
+    def process_all(self, input_file: str, output_file: str, agent_output_file: str):
 
         input_path = Path(input_file)
 
@@ -612,6 +638,7 @@ class FormAutoSubmit:
             self.perform_login(self.auth_user, self.auth_pass)
 
         all_captured = []
+        all_agent_captured = []
 
         for idx, url in enumerate(urls, start=1):
 
@@ -621,13 +648,17 @@ class FormAutoSubmit:
 
             print("=" * 60)
 
-            result = self.process_url(url)
+            result, agent_result = self.process_url(url)
 
             all_captured.extend(result)
+            all_agent_captured.extend(agent_result)
 
             time.sleep(0.5)
 
         Path(output_file).write_text("\n".join(all_captured) + "\n", encoding="utf-8")
+        Path(agent_output_file).write_text(
+            "\n\n".join(all_agent_captured) + "\n", encoding="utf-8"
+        )
 
         print("\n" + "=" * 60)
 
@@ -658,6 +689,11 @@ def main():
     parser.add_argument(
         "-o",
         "--output-file",
+        default=DEFAULT_OUTPUT_FILE,
+    )
+
+    parser.add_argument(
+        "--agent-output",
         default=DEFAULT_OUTPUT_FILE,
     )
 
@@ -711,7 +747,7 @@ def main():
         cookie=args.cookie,
     )
 
-    processor.process_all(args.input_file, args.output_file)
+    processor.process_all(args.input_file, args.output_file, args.agent_output)
 
 
 if __name__ == "__main__":

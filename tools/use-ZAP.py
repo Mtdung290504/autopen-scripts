@@ -43,7 +43,8 @@ class FastZapScanner:
         self._disable_https_scanning()
 
         # Rule IDs tốn thời gian: SQLi Timing, DOM XSS, v.v.
-        self.slow_rules = "40019,40020,40021,40022,40024,40026,90037"
+        # 40026: DOM XSS
+        self.slow_rules = "40019,40020,40021,40022,40023,40024,40026,90037,90033,40027,90011"
 
         if self.sid:
             self._setup_auth()
@@ -84,7 +85,7 @@ class FastZapScanner:
             self._log(f"[!] Lỗi Replacer: {e}")
 
     def _optimize_policy(self):
-        policy_name = "Pen Test"
+        policy_name = "Sequence"
         self._log(f"[*] Đang tinh chỉnh Policy: {policy_name}...")
         try:
             # 1. Disable các rule chậm CHỈ dành riêng cho Policy "Pen Test"
@@ -164,7 +165,7 @@ class FastZapScanner:
                 url=url,
                 recurse=(url != "/" and True or False),
                 # recurse=(False),
-                scanpolicyname="Pen Test",
+                scanpolicyname="Sequence",
             )
             if not str(scan_id).isdigit():
                 self._log(f"    [!] ZAP Reject: {scan_id}")
