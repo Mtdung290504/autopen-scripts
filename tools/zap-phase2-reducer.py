@@ -12,21 +12,17 @@ từ kết quả quét của ZAP, chuẩn bị dữ liệu tinh gọn để cấ
    khác nhau tấn công vào cùng một điểm mục tiêu thành một cluster duy nhất.
 2. Rút gọn dữ liệu (Reduction): Thay vì ném toàn bộ HTTP Response khổng lồ 
    cho AI, script chỉ trích xuất những phần quan trọng: Status line, 
-   các headers cốt lõi, ZAP Evidence (bằng chứng lỗi ZAP tìm thấy), ngữ cảnh 
-   (context) xung quanh bằng chứng, và snippet chứa payload (Reflection).
-3. Loại bỏ trùng lặp (Deduplication): Loại bỏ các finding và payload trùng lặp 
-   trong cùng một cluster.
-4. Sắp xếp (Sorting): Ưu tiên đẩy các cluster có mức độ nghiêm trọng cao 
-   (Critical/High) lên đầu danh sách để Agent xử lý trước.
+   các headers cốt lõi, ZAP Evidence, ngữ cảnh và Reflection snippet.
+3. Loại bỏ trùng lặp (Deduplication): Loại bỏ các finding và payload trùng lặp.
+4. Sắp xếp (Sorting): Ưu tiên đẩy các cluster có mức độ nghiêm trọng cao lên đầu.
 ======================================================================
 
-Schema:
+Schema Output:
 
 {
   "base": "http://host/app/",
   "items": [
     {
-      "clusterKey": "POST|vulnerabilities/xss_s/|form|txtName",
       "target": {
         "endpoint": "vulnerabilities/xss_s/",
         "method": "POST",
@@ -39,26 +35,19 @@ Schema:
       "payloads": [
         "</div><script>alert(1)</script><div>"
       ],
-      "response": "HTTP/1.1 200 OK\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] ...\n[Context] ...",
-      "repeat": 2
+      "response": "HTTP/1.1 200 OK\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] ...",
+      "repeat": 5
     }
   ]
 }
 
-Field notes:
-- `clusterKey` — stable dedupe key, join key for phase 3. Uses path only (no query string) to avoid
-  splitting same endpoint into multiple clusters due to different payload values in URL.
-- `target` — the input surface the agent should reason about.
-- `findings` and `payloads` — aligned by index. Empty string if a finding has no payload.
-- `response` — reduced HTTP-like string:
-    status line
-    + small set of relevant headers
-    + [ZAP Evidence] lines (from alert.evidence — ZAP already confirmed these)
-    + [Context] window around evidence in body (only when evidence is short and found in body)
-    + [Reflection] snippet (only for XSS/injection findings where payload appears in body)
-  Forms are NOT included — form structure is stored separately in form_map.json.
-  LEAK_PATTERNS are NOT used — ZAP evidence field already contains what matters.
-- `repeat` — present only when cluster contains more than one source result.
+Giải thích các trường (Field notes):
+- `target` — Bề mặt tấn công (input surface). Đây là điểm mà Agent cần tập trung phân tích xem có thực sự lọt lỗ hổng hay không.
+- `findings` và `payloads` — Danh sách các lỗi và payload tương ứng (đã được dedupe). Nếu 1 lỗi không có payload, nó sẽ là chuỗi rỗng.
+- `response` — Chuỗi mô phỏng HTTP Response nhưng đã bị rút gọn tới mức tối đa, chỉ giữ lại các manh mối quan trọng cho Agent ([ZAP Evidence], [Context], [Reflection]).
+- `repeat` — Tín hiệu độ tin cậy (Confidence Signal). Nó thể hiện CÓ BAO NHIÊU kết quả của ZAP đã bị gom chung vào cluster này. 
+    * Ví dụ: Nếu "repeat": 5, nghĩa là ZAP đã bắn 5 payload khác nhau vào cùng 1 parameter này và đều báo lỗi. 
+    * Đối với AI Agent, chỉ số này càng cao thì khả năng đây là Lỗi Thật (True Positive) càng lớn. Trường này CHỈ xuất hiện khi có từ 2 kết quả trùng lặp trở lên.
 """
 
 import argparse
@@ -143,9 +132,7 @@ def split_raw_response(raw_response: str) -> tuple[str, dict[str, str], str]:
 
 
 # ──────────────────────────────────────────────────────────────
-# CLUSTER KEY
-# clusterKey dùng path không có query string để tránh split
-# cùng 1 endpoint thành nhiều cluster do payload khác nhau trong URL
+# CLUSTER KEY (Chỉ dùng nội bộ để gom nhóm)
 # ──────────────────────────────────────────────────────────────
 
 
@@ -165,9 +152,6 @@ def build_cluster_key(item: dict) -> str:
 
 # ──────────────────────────────────────────────────────────────
 # RESPONSE REDUCER
-# Không dùng LEAK_PATTERNS — ZAP evidence đã có
-# Không extract form — có form_map.json riêng
-# Không parse HTML nặng — string search đơn giản
 # ──────────────────────────────────────────────────────────────
 
 
@@ -176,17 +160,16 @@ def build_reduced_response(items: list[dict]) -> str:
     status_line, headers, body = split_raw_response(raw_response)
     lines: list[str] = []
 
-    # 1. Status line — luôn cần, Agent cần biết 200/403/500/redirect
+    # 1. Status line
     if status_line:
         lines.append(status_line)
 
-    # 2. Headers có giá trị — chỉ giữ những gì Agent cần reason
+    # 2. Headers
     for name in KEEP_HEADERS:
         if name in headers:
             lines.append(f"{name.title()}: {headers[name]}")
 
-    # 3. ZAP Evidence — quan trọng nhất
-    # ZAP đã xác định rồi, không cần tìm lại bằng regex
+    # 3. ZAP Evidence
     zap_evidences = dedupe_strings(
         [
             normalize_text(item.get("evidence"))
@@ -200,19 +183,16 @@ def build_reduced_response(items: list[dict]) -> str:
         for ev in zap_evidences:
             lines.append(f"[ZAP Evidence] {ev[:300]}")
 
-    # 4. Context window xung quanh evidence trong body
-    # Chỉ khi evidence ngắn (< 120 char) và cần thêm context
-    # Lấy tối đa 1 window để không làm nặng output
+    # 4. Context window
     for ev in zap_evidences:
         if len(ev) < 120 and ev in body:
             idx = body.index(ev)
             window = normalize_space(body[max(0, idx - 80) : idx + len(ev) + 150])
             if window and window != ev:
                 lines.append(f"[Context] {window[:400]}")
-            break  # 1 window là đủ
+            break
 
-    # 5. Reflection snippet — chỉ cho XSS / injection / SSTI
-    # Tìm payload trong body, lấy snippet nhỏ xung quanh
+    # 5. Reflection snippet
     for item in items:
         payload = normalize_text(item.get("payload"))
         finding = normalize_text(item.get("finding_type")).lower()
@@ -229,7 +209,7 @@ def build_reduced_response(items: list[dict]) -> str:
                 )
                 lines.append(f"[Reflection] {snippet[:300]}")
                 break
-        break  # 1 reflection là đủ
+        break
 
     return "\n".join(lines).strip()
 
@@ -278,8 +258,8 @@ def build_item(cluster_key: str, items: list[dict]) -> dict:
         "param": normalize_text(first.get("param")),
     }
 
+    # Bỏ trường clusterKey ở đây
     reduced: dict = {
-        "clusterKey": cluster_key,
         "target": target,
         "findings": findings,
         "payloads": payloads,
@@ -328,6 +308,7 @@ def reduce_phase2(data: dict) -> dict:
 
     clusters: dict[str, list[dict]] = defaultdict(list)
     for item in results:
+        # Cluster key vẫn được dùng nội bộ tại đây
         clusters[build_cluster_key(item)].append(item)
 
     reduced_items = [build_item(ck, citems) for ck, citems in clusters.items()]
