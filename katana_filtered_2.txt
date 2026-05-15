@@ -1,0 +1,13 @@
+POST /DVWA/vulnerabilities/xss_s/ txtName=test&btnSign=Sign+Guestbook&mtxMessage=test+content
+/DVWA/vulnerabilities/xss_r/?name=test
+POST /DVWA/vulnerabilities/csp/ include=test
+/DVWA/vulnerabilities/xss_d/
+POST /DVWA/vulnerabilities/weak_id/
+/DVWA/vulnerabilities/sqli_blind/?id=test&Submit=Submit
+POST /DVWA/vulnerabilities/upload/ MAX_FILE_SIZE=100000&Upload=Upload
+/DVWA/vulnerabilities/view_source.php?id=xss_s&security=low
+/DVWA/vulnerabilities/sqli/?id=test&Submit=Submit
+POST /DVWA/vulnerabilities/captcha/ step=1&password_new=test&password_conf=test&Change=Change
+POST /DVWA/vulnerabilities/exec/ ip=test&Submit=Submit
+/DVWA/vulnerabilities/csrf/?password_new=test&password_conf=test&Change=Change
+/DVWA/vulnerabilities/brute/?username=test&password=test&Login=Login
