@@ -42,12 +42,17 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 def parse_session(file_path: str) -> dict:
-    """Dọc session file (format: key=val; key=val) → dict cookies."""
+    """Dọc session file (format: key=val; key=val) → dict cookies. Chỉ đọc dòng đầu tiên."""
     cookies = {}
     if not file_path or not Path(file_path).exists():
         return cookies
     try:
-        content = Path(file_path).read_text(encoding="utf-8").strip()
+        content = ""
+        for line in Path(file_path).read_text(encoding="utf-8").splitlines():
+            if line.strip() and not line.startswith("#"):
+                content = line.strip()
+                break
+
         for item in content.split(";"):
             if "=" in item:
                 k, v = item.split("=", 1)
@@ -59,8 +64,8 @@ def parse_session(file_path: str) -> dict:
 
 BASE_URL = "http://192.168.153.200/DVWA"
 
-DEFAULT_INPUT_FILE = "katana.filtered.txt"
-DEFAULT_OUTPUT_FILE = "katana_filtered_2.txt"
+DEFAULT_INPUT_FILE = "target_info/site-endpoints.txt"
+DEFAULT_OUTPUT_FILE = "target_info/site-forms.txt"
 
 PROXY_URL = "http://192.168.153.130:8080"
 
@@ -671,7 +676,9 @@ class FormAutoSubmit:
             time.sleep(0.5)
 
         Path(output_file).write_text("\n".join(all_captured) + "\n", encoding="utf-8")
-        Path(agent_output_file).write_text(
+        agent_out_path = Path(agent_output_file)
+        agent_out_path.parent.mkdir(parents=True, exist_ok=True)
+        agent_out_path.write_text(
             "\n\n".join(all_agent_captured) + "\n", encoding="utf-8"
         )
 

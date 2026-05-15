@@ -10,12 +10,17 @@ from datetime import datetime, timedelta
 
 
 def parse_session(file_path: str) -> dict:
-    """Đọc session file (format: key=val; key=val) → dict cookies."""
+    """Đọc session file (format: key=val; key=val) → dict cookies. Chỉ đọc dòng đầu tiên."""
     cookies = {}
     if not file_path or not os.path.exists(file_path):
         return cookies
     try:
-        content = Path(file_path).read_text(encoding="utf-8").strip()
+        content = ""
+        for line in Path(file_path).read_text(encoding="utf-8").splitlines():
+            if line.strip() and not line.startswith("#"):
+                content = line.strip()
+                break
+        
         for item in content.split(";"):
             if "=" in item:
                 k, v = item.split("=", 1)

