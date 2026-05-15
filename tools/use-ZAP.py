@@ -20,7 +20,7 @@ def parse_session(file_path: str) -> dict:
             if line.strip() and not line.startswith("#"):
                 content = line.strip()
                 break
-        
+
         for item in content.split(";"):
             if "=" in item:
                 k, v = item.split("=", 1)
@@ -28,6 +28,7 @@ def parse_session(file_path: str) -> dict:
     except Exception as e:
         print(f"[!] Lỗi đọc session file: {e}")
     return cookies
+
 
 # ==========================================
 # 1. TRIỆT TIÊU PROXY LOOP TRONG SCRIPT
@@ -61,11 +62,13 @@ class FastZapScanner:
         )
 
         # Loại bỏ HTTPS ngay khi khởi tạo
-        self._disable_https_scanning()
+        # self._disable_https_scanning()
 
         # Rule IDs tốn thời gian: SQLi Timing, DOM XSS, v.v.
         # 40026: DOM XSS
-        self.slow_rules = "40019,40020,40021,40022,40023,40024,40026,90037,90033,40027,90011"
+        self.slow_rules = (
+            "40019,40020,40021,40022,40023,40024,40026,90037,90033,40027,90011"
+        )
 
         if self.cookies:
             self._setup_auth()
@@ -79,10 +82,11 @@ class FastZapScanner:
         """Loại biên hoàn toàn HTTPS khỏi ZAP để tránh quét thừa"""
         try:
             # Loại khỏi Proxy, Scanner và Context
-            self.zap.core.exclude_from_proxy("^https://.*")
-            self.zap.ascan.exclude_from_scan("^https://.*")
-            self.zap.context.exclude_from_context("Default Context", "^https://.*")
-            self._log("[*] Đã cấu hình ZAP loại bỏ hoàn toàn các mục tiêu HTTPS.")
+            # self.zap.core.exclude_from_proxy("^https://.*")
+            # self.zap.ascan.exclude_from_scan("^https://.*")
+            # self.zap.context.exclude_from_context("Default Context", "^https://.*")
+            # self._log("[*] Đã cấu hình ZAP loại bỏ hoàn toàn các mục tiêu HTTPS.")
+            pass
         except Exception as e:
             self._log(f"[!] Lỗi khi loại biên HTTPS: {e}")
 
@@ -181,10 +185,6 @@ class FastZapScanner:
             s.trust_env = False
             s.proxies = {"http": self.proxy_url, "https": self.proxy_url}
             try:
-                # Ép chỉ nhận HTTP
-                if url.startswith("https://"):
-                    self._log(f"    [SKIP] Bỏ qua vì là HTTPS: {url}")
-                    return []
                 s.get(url, verify=False, timeout=10)
             except:
                 pass
@@ -218,7 +218,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="ZAP Authenticated Targeted Scanner")
     parser.add_argument("-i", "--input-file", required=True)
     parser.add_argument("-b", "--base-url", required=True)
-    parser.add_argument("-s", "--session", required=True, help="Path đến session file (vd: target_info/session.txt)")
+    parser.add_argument(
+        "-s",
+        "--session",
+        required=True,
+        help="Path đến session file (vd: target_info/session.txt)",
+    )
     parser.add_argument("--fast-scan", action="store_true")
     parser.add_argument("-a", "--api-key", default="ksggc5u2lduvgiha5t9ues878a")
     parser.add_argument("-o", "--output", default="zap_results.json")
@@ -254,7 +259,7 @@ if __name__ == "__main__":
             else f"{base.rstrip('/')}/{l.strip().lstrip('/')}"
         )
         for l in path.read_text().splitlines()
-        if l.strip() and not l.strip().startswith("https://")
+        if l.strip()
     ]
 
     print(

@@ -1,0 +1,1 @@
+PHPSESSID=1lsg7f8o7fjg75agf20t0dp7gi; security=low

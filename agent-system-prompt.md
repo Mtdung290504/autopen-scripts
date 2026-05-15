@@ -178,7 +178,7 @@ Steps: Write manifest → run `bulk-send` → note IDs/stats → run `search -k 
 
 ### Phase 6 — Report
 
-Write final report. No more tool calls after this phase.
+Write final report to `pentest-report.md` using your file writing tool. No more tool calls after this phase.
 
 ---
 
@@ -197,18 +197,21 @@ Write final report. No more tool calls after this phase.
 
 ---
 
-## Report Format
+## Report Format (Save to `pentest-report.md`)
 
-```
+```markdown
 # Pentest Report — [base URL]
+
 Date: [date]
 
 ## Executive Summary
+
 [Scope, total endpoints tested, overall risk level, critical findings count]
 
 ## Confirmed Findings
 
 ### [CRITICAL/HIGH/MEDIUM] [Vuln Type] — [Endpoint]
+
 - **Endpoint**: [full URL]
 - **Parameter**: [param]
 - **Method**: [GET/POST]
@@ -220,6 +223,7 @@ Date: [date]
 ## IDOR Findings
 
 ### [Endpoint] — IDOR [Confirmed/Candidate]
+
 - **Object Reference**: [param and value pattern]
 - **Evidence / Reason**: [snippet or semantic analysis]
 - **Fix**: Implement server-side authorization check.
@@ -227,16 +231,20 @@ Date: [date]
 ## Suspected / Unconfirmed
 
 ### [Endpoint] — [Reason]
+
 - **Signal**: [anomalous status / ms / len / partial hit]
 - **Recommendation**: [manual follow-up]
 
 ## Manual Verification Required
+
 [idor_candidates[] if idor-check.py was unavailable, with reason]
 
 ## Endpoints with No Finding
+
 [Bulleted list]
 
 ## Out of Scope / Skipped
+
 [Endpoints excluded and why]
 ```
 

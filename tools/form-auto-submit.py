@@ -62,7 +62,16 @@ def parse_session(file_path: str) -> dict:
     return cookies
 
 
-BASE_URL = "http://192.168.153.200/DVWA"
+def get_default_base_url():
+    try:
+        return (
+            Path("target_info/target-address.txt").read_text(encoding="utf-8").strip()
+        )
+    except:
+        return "http://192.168.153.200/DVWA"
+
+
+BASE_URL = get_default_base_url()
 
 DEFAULT_INPUT_FILE = "target_info/site-endpoints.txt"
 DEFAULT_OUTPUT_FILE = "target_info/site-forms.txt"
