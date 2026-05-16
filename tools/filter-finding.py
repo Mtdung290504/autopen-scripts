@@ -37,8 +37,9 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+# Todo: Change Model API URL
 DEFAULT_FILTER_API_URL = (
-    "https://saint-endorsement-moisture-confidence.trycloudflare.com/filter"
+    "https://campbell-ones-manufacture-fish.trycloudflare.com/filter"
 )
 
 # ──────────────────────────────────────────────────────────────

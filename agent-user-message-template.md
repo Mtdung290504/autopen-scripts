@@ -7,9 +7,9 @@ Không cần paste nội dung file — Agent tự đọc.
 
 ## ---- COPY TỪ ĐÂY ----
 
-Môi trường: workspace tại `c:\VS_Code_Workplace\ATW&CSDL\` (điều chỉnh path nếu khác).
+Môi trường: workspace tại `c:\VS_Code_Workplace\ATW&CSDL\`
 
-ZAP proxy: `192.168.153.130:8080` (điều chỉnh nếu khác).
+ZAP proxy: `192.168.153.130:8080`
 
 Tất cả pre-conditions đã hoàn tất (recon xong, `site-endpoints.txt` và `site-forms.txt` đã có). Bắt đầu pipeline từ Step 0.
 

